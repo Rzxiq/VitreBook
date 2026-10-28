@@ -25,7 +25,7 @@ export const SearchScreen: React.FC = () => {
 
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<'pdf' | 'epub' | undefined>('pdf');
-  const [results, setResults] = useState<ScrapedBook[]>([]);
+  const [results, setResults] = useState<ScrapedBook[]>(ScraperManager.getCuratedBooks());
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [showMirrorModal, setShowMirrorModal] = useState(false);
@@ -73,6 +73,17 @@ export const SearchScreen: React.FC = () => {
           </Text>
         </TouchableOpacity>
       </View>
+
+      {/* Quick Test Reader Banner */}
+      <TouchableOpacity
+        style={styles.testReaderBanner}
+        onPress={() => navigation.navigate('LibraryTab')}
+      >
+        <Text style={styles.testReaderIcon}>⚡</Text>
+        <Text style={styles.testReaderText}>
+          Want to test the built-in reader? <Text style={styles.testReaderLink}>Tap to load sample book →</Text>
+        </Text>
+      </TouchableOpacity>
 
       {/* Search Input Box */}
       <View style={styles.searchBoxContainer}>
@@ -131,19 +142,26 @@ export const SearchScreen: React.FC = () => {
 
       {/* Results List */}
       {!loading && (
-        <FlatList
-          data={results}
-          keyExtractor={(item, index) => `${item.md5}-${index}`}
-          renderItem={({ item }) => (
-            <BookCard
-              book={item}
-              onPress={(selected) =>
-                navigation.navigate('BookDetail', { book: selected })
-              }
-            />
-          )}
-          contentContainerStyle={styles.listContent}
-        />
+        <>
+          <Text style={styles.sectionHeading}>
+            {!query.trim()
+              ? '🌟 Featured Public Domain Classics'
+              : `Search Results (${results.length})`}
+          </Text>
+          <FlatList
+            data={results}
+            keyExtractor={(item, index) => `${item.md5}-${index}`}
+            renderItem={({ item }) => (
+              <BookCard
+                book={item}
+                onPress={(selected) =>
+                  navigation.navigate('BookDetail', { book: selected })
+                }
+              />
+            )}
+            contentContainerStyle={styles.listContent}
+          />
+        </>
       )}
 
       <MirrorSelectorModal
@@ -295,5 +313,38 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingVertical: 8,
+  },
+  testReaderBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(46, 125, 50, 0.2)',
+    borderWidth: 1,
+    borderColor: '#2E7D32',
+    borderRadius: 10,
+    marginHorizontal: 16,
+    marginTop: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  testReaderIcon: {
+    fontSize: 16,
+    marginRight: 8,
+  },
+  testReaderText: {
+    color: '#A5D6A7',
+    fontSize: 12,
+    flex: 1,
+  },
+  testReaderLink: {
+    fontWeight: 'bold',
+    color: '#00E676',
+  },
+  sectionHeading: {
+    color: '#FFF',
+    fontSize: 15,
+    fontWeight: 'bold',
+    marginHorizontal: 16,
+    marginTop: 14,
+    marginBottom: 6,
   },
 });

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   StyleSheet,
   View,
@@ -8,17 +8,23 @@ import {
   TouchableOpacity,
   SafeAreaView,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import ReactNativeBlobUtil from 'react-native-blob-util';
 import { useLibraryStore } from '../store/useLibraryStore';
 import { DownloadedBook } from '../types/book';
 import { DownloadManager } from '../services/downloadManager';
-import { formatBytes } from '../utils/fileHelpers';
+
+const SAMPLE_PDF_URL =
+  'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf';
 
 export const LibraryScreen: React.FC = () => {
   const navigation = useNavigation<any>();
-  const { books } = useLibraryStore();
+  const { books, addBook } = useLibraryStore();
   const bookList = Object.values(books).sort((a, b) => b.downloadedAt - a.downloadedAt);
+
+  const [loadingSample, setLoadingSample] = useState(false);
 
   const handleOpenBook = (book: DownloadedBook) => {
     navigation.navigate('PdfReader', {
@@ -26,6 +32,48 @@ export const LibraryScreen: React.FC = () => {
       filePath: book.localFilePath,
       title: book.title,
     });
+  };
+
+  const handleLoadSampleBook = async () => {
+    setLoadingSample(true);
+    try {
+      const { dirs } = ReactNativeBlobUtil.fs;
+      const targetPath = `${dirs.DocumentDir}/VitreBook_Starter_Guide.pdf`;
+
+      // Download sample PDF
+      const res = await ReactNativeBlobUtil.config({
+        path: targetPath,
+        fileCache: true,
+      }).fetch('GET', SAMPLE_PDF_URL);
+
+      const filePath = res.path();
+      const stat = await ReactNativeBlobUtil.fs.stat(filePath);
+
+      const sampleBook: DownloadedBook = {
+        id: 'sample-book-001',
+        md5: '7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a',
+        title: 'VitreBook Starter Guide (Sample)',
+        author: 'VitreBook Open Source Project',
+        localFilePath: filePath,
+        fileSize: Number(stat.size) || 13264,
+        extension: 'pdf',
+        downloadedAt: Date.now(),
+        totalPages: 2,
+        lastReadPage: 1,
+      };
+
+      addBook(sampleBook);
+      setLoadingSample(false);
+
+      // Open immediately in reader
+      handleOpenBook(sampleBook);
+    } catch (err: any) {
+      setLoadingSample(false);
+      Alert.alert(
+        'Sample Download Failed',
+        'Could not load sample PDF. Please check your internet connection.'
+      );
+    }
   };
 
   const handleDeleteBook = (book: DownloadedBook) => {
@@ -92,8 +140,23 @@ export const LibraryScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>My Library</Text>
-        <Text style={styles.countBadge}>{bookList.length} downloaded</Text>
+        <View>
+          <Text style={styles.headerTitle}>My Library</Text>
+          <Text style={styles.countBadge}>{bookList.length} offline books</Text>
+        </View>
+
+        {/* Quick Test Sample Button */}
+        <TouchableOpacity
+          style={styles.sampleHeaderBtn}
+          onPress={handleLoadSampleBook}
+          disabled={loadingSample}
+        >
+          {loadingSample ? (
+            <ActivityIndicator size="small" color="#FFF" />
+          ) : (
+            <Text style={styles.sampleHeaderBtnText}>⚡ Test Sample Book</Text>
+          )}
+        </TouchableOpacity>
       </View>
 
       {bookList.length === 0 ? (
@@ -101,13 +164,26 @@ export const LibraryScreen: React.FC = () => {
           <Text style={styles.emptyIcon}>📂</Text>
           <Text style={styles.emptyTitle}>Your library is empty</Text>
           <Text style={styles.emptySubtitle}>
-            Downloaded books will appear here for offline reading.
+            Test the built-in PDF reader instantly with a verified sample book, or search public catalogs.
           </Text>
+
+          <TouchableOpacity
+            style={styles.sampleActionBtn}
+            onPress={handleLoadSampleBook}
+            disabled={loadingSample}
+          >
+            {loadingSample ? (
+              <ActivityIndicator color="#FFF" />
+            ) : (
+              <Text style={styles.sampleActionText}>⚡ Load Sample Book (Test Reader)</Text>
+            )}
+          </TouchableOpacity>
+
           <TouchableOpacity
             style={styles.exploreBtn}
             onPress={() => navigation.navigate('SearchTab')}
           >
-            <Text style={styles.exploreBtnText}>Explore Books</Text>
+            <Text style={styles.exploreBtnText}>🔍 Explore Catalog</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -144,7 +220,19 @@ const styles = StyleSheet.create({
   },
   countBadge: {
     color: '#888',
-    fontSize: 13,
+    fontSize: 12,
+    marginTop: 2,
+  },
+  sampleHeaderBtn: {
+    backgroundColor: '#2E7D32',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+  },
+  sampleHeaderBtnText: {
+    color: '#FFF',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   gridContent: {
     padding: 12,
@@ -237,16 +325,34 @@ const styles = StyleSheet.create({
     color: '#777',
     fontSize: 14,
     textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: 24,
+    lineHeight: 20,
+  },
+  sampleActionBtn: {
+    backgroundColor: '#2E7D32',
+    paddingHorizontal: 22,
+    paddingVertical: 13,
+    borderRadius: 10,
+    marginBottom: 12,
+    width: '100%',
+    alignItems: 'center',
+  },
+  sampleActionText: {
+    color: '#FFF',
+    fontSize: 15,
+    fontWeight: 'bold',
   },
   exploreBtn: {
-    backgroundColor: '#E50914',
+    backgroundColor: '#2A2A2A',
     paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
+    paddingVertical: 12,
+    borderRadius: 10,
+    width: '100%',
+    alignItems: 'center',
   },
   exploreBtnText: {
     color: '#FFF',
-    fontWeight: 'bold',
+    fontWeight: '600',
+    fontSize: 14,
   },
 });

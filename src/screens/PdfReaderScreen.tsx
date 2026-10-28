@@ -8,6 +8,9 @@ import {
   SafeAreaView,
   Dimensions,
   ActivityIndicator,
+  Modal,
+  TextInput,
+  Alert,
 } from 'react-native';
 import Pdf from 'react-native-pdf';
 import { useRoute, useNavigation } from '@react-navigation/native';
@@ -18,6 +21,8 @@ interface RouteParams {
   filePath: string;
   title: string;
 }
+
+type ReaderTheme = 'dark' | 'sepia' | 'light';
 
 export const PdfReaderScreen: React.FC = () => {
   const route = useRoute();
@@ -32,9 +37,14 @@ export const PdfReaderScreen: React.FC = () => {
 
   const [currentPage, setCurrentPage] = useState<number>(initialPage);
   const [totalPages, setTotalPages] = useState<number>(book?.totalPages || 0);
-  const [isNightMode, setIsNightMode] = useState<boolean>(true);
+  const [theme, setTheme] = useState<ReaderTheme>('dark');
   const [showControls, setShowControls] = useState<boolean>(true);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  // Jump to page modal
+  const [jumpModalVisible, setJumpModalVisible] = useState(false);
+  const [jumpInput, setJumpInput] = useState('');
 
   // Auto-save page progress
   const handlePageChanged = useCallback(
@@ -46,119 +56,256 @@ export const PdfReaderScreen: React.FC = () => {
     [md5, updateLastReadPage]
   );
 
+  const handleJumpToPage = () => {
+    const pageNum = parseInt(jumpInput.trim(), 10);
+    if (!pageNum || pageNum < 1 || (totalPages > 0 && pageNum > totalPages)) {
+      Alert.alert('Invalid Page', `Please enter a valid page number between 1 and ${totalPages || 1000}.`);
+      return;
+    }
+    pdfRef.current?.setPage(pageNum);
+    setCurrentPage(pageNum);
+    updateLastReadPage(md5, pageNum, totalPages);
+    setJumpModalVisible(false);
+    setJumpInput('');
+  };
+
+  const progressPercent =
+    totalPages > 0 ? Math.min(100, Math.round((currentPage / totalPages) * 100)) : 0;
+
   return (
     <SafeAreaView
       style={[
         styles.container,
-        isNightMode ? styles.darkContainer : styles.lightContainer,
+        theme === 'dark' && styles.darkContainer,
+        theme === 'sepia' && styles.sepiaContainer,
+        theme === 'light' && styles.lightContainer,
       ]}
     >
       <StatusBar
         hidden={!showControls}
-        barStyle={isNightMode ? 'light-content' : 'dark-content'}
-        backgroundColor={isNightMode ? '#121212' : '#FFFFFF'}
+        barStyle={theme === 'light' ? 'dark-content' : 'light-content'}
+        backgroundColor={theme === 'dark' ? '#121212' : theme === 'sepia' ? '#F4ECD8' : '#FFFFFF'}
       />
 
-      {/* Top Header Overlay */}
+      {/* Mobbin-Inspired Top Floating Header */}
       {showControls && (
         <View
           style={[
-            styles.header,
-            isNightMode ? styles.darkHeader : styles.lightHeader,
+            styles.floatingHeader,
+            theme === 'dark' && styles.darkBar,
+            theme === 'sepia' && styles.sepiaBar,
+            theme === 'light' && styles.lightBar,
           ]}
         >
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.navButton}>
-            <Text style={[styles.navButtonText, isNightMode && styles.darkText]}>← Back</Text>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
+            <Text style={[styles.backText, theme === 'light' ? styles.darkText : styles.lightText]}>
+              ✕
+            </Text>
           </TouchableOpacity>
 
-          <Text numberOfLines={1} style={[styles.headerTitle, isNightMode && styles.darkText]}>
-            {title || 'Document Reader'}
-          </Text>
+          <View style={styles.titleContainer}>
+            <Text
+              numberOfLines={1}
+              style={[styles.headerTitle, theme === 'light' ? styles.darkText : styles.lightText]}
+            >
+              {title || 'Document Reader'}
+            </Text>
+            <Text style={styles.headerSubtitle}>
+              {totalPages > 0 ? `${progressPercent}% completed` : 'Reading'}
+            </Text>
+          </View>
 
-          <TouchableOpacity
-            onPress={() => setIsNightMode((prev) => !prev)}
-            style={styles.modeButton}
-          >
-            <Text style={styles.modeIcon}>{isNightMode ? '☀️' : '🌙'}</Text>
-          </TouchableOpacity>
+          {/* Theme Palette Switcher */}
+          <View style={styles.themeGroup}>
+            <TouchableOpacity
+              onPress={() => setTheme('dark')}
+              style={[styles.themeChip, theme === 'dark' && styles.activeChip]}
+            >
+              <Text style={styles.themeIcon}>🌙</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setTheme('sepia')}
+              style={[styles.themeChip, theme === 'sepia' && styles.activeChip]}
+            >
+              <Text style={styles.themeIcon}>📜</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setTheme('light')}
+              style={[styles.themeChip, theme === 'light' && styles.activeChip]}
+            >
+              <Text style={styles.themeIcon}>☀️</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       )}
 
       {/* PDF View Container */}
       <View style={styles.pdfWrapper}>
-        {isLoading && (
+        {isLoading && !loadError && (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#E50914" />
-            <Text style={[styles.loadingText, isNightMode && styles.darkText]}>
-              Loading Document...
+            <Text style={[styles.loadingText, theme === 'light' ? styles.darkText : styles.lightText]}>
+              Rendering Document...
             </Text>
           </View>
         )}
 
-        <Pdf
-          ref={pdfRef}
-          source={{ uri: filePath, cache: true }}
-          page={initialPage}
-          onLoadComplete={(numberOfPages) => {
-            setTotalPages(numberOfPages);
-            setIsLoading(false);
-          }}
-          onPageChanged={handlePageChanged}
-          onError={(error) => {
-            console.warn('PDF Read Error:', error);
-            setIsLoading(false);
-          }}
-          onPageSingleTap={() => {
-            setShowControls((prev) => !prev);
-          }}
-          style={[
-            styles.pdf,
-            isNightMode && styles.invertedPdf,
-          ]}
-          enablePaging={true}
-          horizontal={false}
-          enableRTL={false}
-          enableAnnotationRendering={false}
-        />
+        {loadError ? (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorEmoji}>⚠️</Text>
+            <Text style={styles.errorTitle}>Could not render PDF</Text>
+            <Text style={styles.errorDesc}>{loadError}</Text>
+            <TouchableOpacity
+              style={styles.retryBtn}
+              onPress={() => {
+                setLoadError(null);
+                setIsLoading(true);
+              }}
+            >
+              <Text style={styles.retryBtnText}>Retry Loading</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <Pdf
+            ref={pdfRef}
+            source={{ uri: filePath, cache: true }}
+            page={initialPage}
+            onLoadComplete={(numberOfPages) => {
+              setTotalPages(numberOfPages);
+              setIsLoading(false);
+            }}
+            onPageChanged={handlePageChanged}
+            onError={(error) => {
+              console.warn('PDF Read Error:', error);
+              setIsLoading(false);
+              setLoadError('The document could not be loaded. Check that the file exists and is a valid PDF.');
+            }}
+            onPageSingleTap={() => {
+              setShowControls((prev) => !prev);
+            }}
+            style={[
+              styles.pdf,
+              theme === 'dark' && styles.invertedPdf,
+              theme === 'sepia' && styles.sepiaPdf,
+            ]}
+            enablePaging={true}
+            horizontal={false}
+            enableRTL={false}
+            enableAnnotationRendering={false}
+          />
+        )}
       </View>
 
-      {/* Bottom Page Indicator Overlay */}
+      {/* Mobbin-Inspired Bottom HUD & Scrubber */}
       {showControls && (
         <View
           style={[
-            styles.footer,
-            isNightMode ? styles.darkFooter : styles.lightFooter,
+            styles.floatingFooter,
+            theme === 'dark' && styles.darkBar,
+            theme === 'sepia' && styles.sepiaBar,
+            theme === 'light' && styles.lightBar,
           ]}
         >
-          <TouchableOpacity
-            disabled={currentPage <= 1}
-            onPress={() => {
-              if (currentPage > 1) {
-                pdfRef.current?.setPage(currentPage - 1);
-              }
-            }}
-            style={[styles.pageNavBtn, currentPage <= 1 && styles.disabledBtn]}
-          >
-            <Text style={styles.pageNavText}>◀ Prev</Text>
-          </TouchableOpacity>
+          {/* Progress Track */}
+          <View style={styles.progressBarTrack}>
+            <View
+              style={[
+                styles.progressBarFill,
+                { width: `${progressPercent}%` },
+                theme === 'sepia' ? { backgroundColor: '#8B5A2B' } : { backgroundColor: '#E50914' },
+              ]}
+            />
+          </View>
 
-          <Text style={[styles.pageInfoText, isNightMode && styles.darkText]}>
-            Page {currentPage} of {totalPages || '--'}
-          </Text>
+          {/* Stepper Controls */}
+          <View style={styles.footerControls}>
+            <TouchableOpacity
+              disabled={currentPage <= 10}
+              onPress={() => pdfRef.current?.setPage(Math.max(1, currentPage - 10))}
+              style={[styles.stepBtn, currentPage <= 10 && styles.disabledBtn]}
+            >
+              <Text style={[styles.stepBtnText, theme === 'light' ? styles.darkText : styles.lightText]}>
+                -10
+              </Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            disabled={currentPage >= totalPages}
-            onPress={() => {
-              if (currentPage < totalPages) {
-                pdfRef.current?.setPage(currentPage + 1);
-              }
-            }}
-            style={[styles.pageNavBtn, currentPage >= totalPages && styles.disabledBtn]}
-          >
-            <Text style={styles.pageNavText}>Next ▶</Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+              disabled={currentPage <= 1}
+              onPress={() => pdfRef.current?.setPage(Math.max(1, currentPage - 1))}
+              style={[styles.stepBtn, currentPage <= 1 && styles.disabledBtn]}
+            >
+              <Text style={[styles.stepBtnText, theme === 'light' ? styles.darkText : styles.lightText]}>
+                ◀ Prev
+              </Text>
+            </TouchableOpacity>
+
+            {/* Tap to Jump to Page */}
+            <TouchableOpacity
+              onPress={() => {
+                setJumpInput(String(currentPage));
+                setJumpModalVisible(true);
+              }}
+              style={styles.pagePill}
+            >
+              <Text style={[styles.pageInfoText, theme === 'light' ? styles.darkText : styles.lightText]}>
+                Page {currentPage} of {totalPages || '--'} ✎
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              disabled={currentPage >= totalPages}
+              onPress={() => pdfRef.current?.setPage(Math.min(totalPages, currentPage + 1))}
+              style={[styles.stepBtn, currentPage >= totalPages && styles.disabledBtn]}
+            >
+              <Text style={[styles.stepBtnText, theme === 'light' ? styles.darkText : styles.lightText]}>
+                Next ▶
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              disabled={currentPage + 10 > totalPages}
+              onPress={() => pdfRef.current?.setPage(Math.min(totalPages, currentPage + 10))}
+              style={[styles.stepBtn, currentPage + 10 > totalPages && styles.disabledBtn]}
+            >
+              <Text style={[styles.stepBtnText, theme === 'light' ? styles.darkText : styles.lightText]}>
+                +10
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       )}
+
+      {/* Jump to Page Modal */}
+      <Modal visible={jumpModalVisible} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.jumpModalCard}>
+            <Text style={styles.jumpModalTitle}>Jump to Page</Text>
+            <Text style={styles.jumpModalSubtitle}>
+              Total pages available: {totalPages || 'Unknown'}
+            </Text>
+            <TextInput
+              keyboardType="number-pad"
+              value={jumpInput}
+              onChangeText={setJumpInput}
+              placeholder="e.g. 42"
+              placeholderTextColor="#888"
+              style={styles.jumpModalInput}
+              autoFocus
+            />
+            <View style={styles.jumpModalButtons}>
+              <TouchableOpacity
+                onPress={() => setJumpModalVisible(false)}
+                style={[styles.jumpBtn, styles.jumpCancelBtn]}
+              >
+                <Text style={styles.jumpCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleJumpToPage} style={[styles.jumpBtn, styles.jumpConfirmBtn]}>
+                <Text style={styles.jumpConfirmText}>Go</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -170,57 +317,107 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   darkContainer: {
-    backgroundColor: '#121212',
+    backgroundColor: '#0F0F0F',
+  },
+  sepiaContainer: {
+    backgroundColor: '#F4ECD8',
   },
   lightContainer: {
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#FFFFFF',
   },
-  header: {
+
+  // Floating Bars
+  floatingHeader: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
+    top: 10,
+    left: 14,
+    right: 14,
+    zIndex: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  floatingFooter: {
+    position: 'absolute',
+    bottom: 14,
+    left: 14,
+    right: 14,
+    zIndex: 20,
+    paddingHorizontal: 14,
     paddingVertical: 12,
-    borderBottomWidth: 1,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 8,
   },
-  darkHeader: {
-    backgroundColor: 'rgba(18, 18, 18, 0.95)',
-    borderBottomColor: '#282828',
+  darkBar: {
+    backgroundColor: 'rgba(28, 28, 30, 0.95)',
+    borderWidth: 1,
+    borderColor: '#3A3A3C',
   },
-  lightHeader: {
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderBottomColor: '#E0E0E0',
+  sepiaBar: {
+    backgroundColor: 'rgba(240, 230, 210, 0.96)',
+    borderWidth: 1,
+    borderColor: '#D4C4A8',
   },
-  navButton: {
+  lightBar: {
+    backgroundColor: 'rgba(255, 255, 255, 0.96)',
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+  },
+
+  iconBtn: {
     padding: 6,
   },
-  navButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#000',
+  backText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  titleContainer: {
+    flex: 1,
+    marginHorizontal: 12,
+    alignItems: 'center',
   },
   headerTitle: {
-    flex: 1,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: 'bold',
-    textAlign: 'center',
-    marginHorizontal: 10,
-    color: '#000',
+  },
+  headerSubtitle: {
+    fontSize: 11,
+    color: '#8E8E93',
+    marginTop: 2,
   },
   darkText: {
-    color: '#FFF',
+    color: '#1C1C1E',
   },
-  modeButton: {
+  lightText: {
+    color: '#FFFFFF',
+  },
+
+  themeGroup: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  themeChip: {
     padding: 6,
+    borderRadius: 8,
+    backgroundColor: 'rgba(128, 128, 128, 0.2)',
   },
-  modeIcon: {
-    fontSize: 18,
+  activeChip: {
+    backgroundColor: '#E50914',
   },
+  themeIcon: {
+    fontSize: 14,
+  },
+
   pdfWrapper: {
     flex: 1,
     width,
@@ -233,59 +430,156 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   invertedPdf: {
-    // Android hardware layer color invert simulation
-    backgroundColor: '#121212',
+    backgroundColor: '#0F0F0F',
   },
+  sepiaPdf: {
+    backgroundColor: '#F4ECD8',
+  },
+
   loadingContainer: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 5,
-    backgroundColor: '#121212',
+    backgroundColor: '#0F0F0F',
   },
   loadingText: {
     marginTop: 12,
     fontSize: 14,
-    color: '#888',
   },
-  footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
-    flexDirection: 'row',
+
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderTopWidth: 1,
+    padding: 30,
   },
-  darkFooter: {
-    backgroundColor: 'rgba(18, 18, 18, 0.95)',
-    borderTopColor: '#282828',
+  errorEmoji: {
+    fontSize: 50,
+    marginBottom: 12,
   },
-  lightFooter: {
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderTopColor: '#E0E0E0',
+  errorTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#FFF',
+    marginBottom: 6,
   },
-  pageNavBtn: {
+  errorDesc: {
+    fontSize: 13,
+    color: '#AAA',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  retryBtn: {
     backgroundColor: '#E50914',
-    paddingHorizontal: 14,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  retryBtnText: {
+    color: '#FFF',
+    fontWeight: 'bold',
+  },
+
+  // Footer & Scrubber
+  progressBarTrack: {
+    height: 4,
+    backgroundColor: 'rgba(128, 128, 128, 0.3)',
+    borderRadius: 2,
+    overflow: 'hidden',
+    marginBottom: 10,
+  },
+  progressBarFill: {
+    height: '100%',
+  },
+  footerControls: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  stepBtn: {
     paddingVertical: 6,
-    borderRadius: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    backgroundColor: 'rgba(128, 128, 128, 0.2)',
   },
   disabledBtn: {
-    backgroundColor: '#444',
-    opacity: 0.5,
+    opacity: 0.3,
   },
-  pageNavText: {
-    color: '#FFF',
+  stepBtnText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  pagePill: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: 'rgba(128, 128, 128, 0.15)',
+  },
+  pageInfoText: {
     fontSize: 12,
     fontWeight: 'bold',
   },
-  pageInfoText: {
+
+  // Jump Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  jumpModalCard: {
+    width: '100%',
+    backgroundColor: '#1E1E1E',
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#333',
+  },
+  jumpModalTitle: {
+    color: '#FFF',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  jumpModalSubtitle: {
+    color: '#8E8E93',
     fontSize: 13,
+    marginBottom: 16,
+  },
+  jumpModalInput: {
+    backgroundColor: '#2A2A2A',
+    color: '#FFF',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 16,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  jumpModalButtons: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  jumpBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  jumpCancelBtn: {
+    backgroundColor: '#333',
+  },
+  jumpCancelText: {
+    color: '#AAA',
     fontWeight: '600',
+  },
+  jumpConfirmBtn: {
+    backgroundColor: '#E50914',
+  },
+  jumpConfirmText: {
+    color: '#FFF',
+    fontWeight: 'bold',
   },
 });

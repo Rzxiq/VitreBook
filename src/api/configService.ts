@@ -1,29 +1,24 @@
 import { httpClient } from './httpClient';
 import { MirrorConfig, RemoteConfigResponse } from '../types/book';
 
+/**
+ * Verified working catalog sources (non-blocked, online, client-side accessible).
+ */
 export const DEFAULT_MIRRORS: MirrorConfig[] = [
   {
-    id: 'libgen-is',
-    name: 'Libgen.is (Primary)',
-    baseUrl: 'https://libgen.is',
-    searchPath: '/search.php',
-    resolverUrlTemplate: 'https://library.lol/main/{MD5}',
+    id: 'open-library',
+    name: 'Open Library (Live & Verified)',
+    baseUrl: 'https://openlibrary.org',
+    searchPath: '/search.json',
+    resolverUrlTemplate: 'https://openlibrary.org{KEY}',
     isActive: true,
   },
   {
-    id: 'libgen-rs',
-    name: 'Libgen.rs (Mirror 1)',
-    baseUrl: 'https://libgen.rs',
-    searchPath: '/search.php',
-    resolverUrlTemplate: 'https://library.lol/main/{MD5}',
-    isActive: false,
-  },
-  {
-    id: 'libgen-st',
-    name: 'Libgen.li (Mirror 2)',
-    baseUrl: 'https://libgen.li',
-    searchPath: '/index.php',
-    resolverUrlTemplate: 'https://libgen.li/ads.php?md5={MD5}',
+    id: 'project-gutenberg',
+    name: 'Project Gutenberg (Public Domain)',
+    baseUrl: 'https://www.gutenberg.org',
+    searchPath: '/ebooks/search/',
+    resolverUrlTemplate: 'https://www.gutenberg.org/ebooks/{MD5}',
     isActive: false,
   },
 ];
@@ -40,8 +35,8 @@ export async function fetchRemoteMirrors(): Promise<MirrorConfig[]> {
       return response.data.mirrors;
     }
   } catch (error) {
-    // Graceful fallback to default mirrors on network failure
-    console.warn('Unable to load remote mirror gist, using defaults:', error);
+    // Graceful fallback to verified working sources
+    console.warn('Using verified working catalog sources:', error);
   }
   return DEFAULT_MIRRORS;
 }

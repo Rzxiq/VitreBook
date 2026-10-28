@@ -44,7 +44,7 @@ export const BookDetailScreen: React.FC = () => {
     try {
       // 1. Resolve direct download URL from MD5
       const activeMirror = getActiveMirror();
-      const directUrl = await ScraperManager.resolveDownloadUrl(activeMirror, book.md5);
+      const directUrl = await ScraperManager.resolveDownloadUrl(activeMirror, book.md5, book);
 
       // 2. Start file stream download to local documents
       const savedBook = await DownloadManager.startDownload(
