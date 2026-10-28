@@ -9,7 +9,7 @@ export interface AppRelease {
   publishedAt: string;
 }
 
-const GITHUB_REPO = 'ranarzxi3/VitreBook';
+const GITHUB_REPO = 'Rzxiq/VitreBook';
 const RELEASES_API = `https://api.github.com/repos/${GITHUB_REPO}/releases/latest`;
 
 export async function checkForAppUpdates(): Promise<AppRelease> {

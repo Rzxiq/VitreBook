@@ -15,7 +15,7 @@
 - **Offline Storage & Download Stream:** Streams files to local app storage using `react-native-blob-util` with real-time percentage progress and speed calculation.
 - **Embedded PDF Reader:** In-app reader built on `react-native-pdf` featuring dark/night reading mode, page jump controls, and auto-saving `lastReadPage` to `react-native-mmkv`.
 - **Automated CI/CD:** Push version tags (`v1.0.0`) to trigger GitHub Actions to build unsigned/signed `arm64-v8a` APKs and attach them directly to GitHub Releases.
-- **Self-Updating:** In-app update banner checks `api.github.com/repos/ranarzxi3/VitreBook/releases/latest` and prompts to install new APK versions.
+- **Self-Updating:** In-app update banner checks `api.github.com/repos/Rzxiq/VitreBook/releases/latest` and prompts to install new APK versions.
 
 ---
 

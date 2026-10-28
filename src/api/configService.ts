@@ -29,7 +29,7 @@ export const DEFAULT_MIRRORS: MirrorConfig[] = [
 ];
 
 const REMOTE_CONFIG_URL =
-  'https://gist.githubusercontent.com/ranarzxi3/raw/vitrebook_mirrors.json';
+  'https://gist.githubusercontent.com/Rzxiq/raw/vitrebook_mirrors.json';
 
 export async function fetchRemoteMirrors(): Promise<MirrorConfig[]> {
   try {
