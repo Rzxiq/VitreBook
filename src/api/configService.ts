@@ -2,16 +2,24 @@ import { httpClient } from './httpClient';
 import { MirrorConfig, RemoteConfigResponse } from '../types/book';
 
 /**
- * Verified working catalog sources (non-blocked, online, client-side accessible).
+ * Active catalog mirrors with libgen.la fully integrated as primary.
  */
 export const DEFAULT_MIRRORS: MirrorConfig[] = [
   {
+    id: 'libgen-la',
+    name: 'Libgen.la (Primary Mirror)',
+    baseUrl: 'https://libgen.la',
+    searchPath: '/index.php',
+    resolverUrlTemplate: 'https://libgen.la/ads.php?md5={MD5}',
+    isActive: true,
+  },
+  {
     id: 'open-library',
-    name: 'Open Library (Live & Verified)',
+    name: 'Open Library (Global Catalog)',
     baseUrl: 'https://openlibrary.org',
     searchPath: '/search.json',
     resolverUrlTemplate: 'https://openlibrary.org{KEY}',
-    isActive: true,
+    isActive: false,
   },
   {
     id: 'project-gutenberg',
@@ -35,8 +43,7 @@ export async function fetchRemoteMirrors(): Promise<MirrorConfig[]> {
       return response.data.mirrors;
     }
   } catch (error) {
-    // Graceful fallback to verified working sources
-    console.warn('Using verified working catalog sources:', error);
+    console.warn('Using default configured mirrors with libgen.la:', error);
   }
   return DEFAULT_MIRRORS;
 }

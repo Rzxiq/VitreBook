@@ -2,7 +2,7 @@ import * as cheerio from 'cheerio';
 import { httpClient } from '../httpClient';
 
 /**
- * Resolves an MD5 hash into a direct download URL by parsing mirror landing pages.
+ * Resolves an MD5 hash into a direct download URL by parsing libgen.la and mirror landing pages.
  */
 export async function resolveDirectFileUrl(
   md5: string,
@@ -19,21 +19,31 @@ export async function resolveDirectFileUrl(
 }
 
 /**
- * Extract download link from the HTML content of the resolver page.
+ * Extract download link from the HTML content of the resolver page (libgen.la/ads.php or library.lol).
  */
 export function extractDirectUrlFromHtml(html: string, pageUrl: string): string {
   const $ = cheerio.load(html);
   let directUrl = '';
 
-  // 1. Check for standard Libgen / Library.lol "GET" link
+  // 1. Check for libgen.la "GET" download button or get.php link
   $('a').each((_, el) => {
     if (directUrl) return;
     const text = $(el).text().trim().toUpperCase();
     const href = $(el).attr('href') || '';
 
-    if (text === 'GET' || text.includes('CLOUD') || text.includes('IPFS.IO') || text.includes('PINATA')) {
+    if (
+      text === 'GET' ||
+      text.includes('DOWNLOAD') ||
+      text.includes('CLOUD') ||
+      text.includes('IPFS.IO') ||
+      text.includes('PINATA') ||
+      href.includes('get.php')
+    ) {
       if (href.startsWith('http://') || href.startsWith('https://')) {
         directUrl = href;
+      } else if (href.startsWith('/')) {
+        const urlObj = new URL(pageUrl);
+        directUrl = `${urlObj.origin}${href}`;
       }
     }
   });
@@ -43,15 +53,24 @@ export function extractDirectUrlFromHtml(html: string, pageUrl: string): string 
     $('a[href$=".pdf"], a[href$=".epub"], a[href*=".pdf?"], a[href*=".epub?"]').each((_, el) => {
       if (directUrl) return;
       const href = $(el).attr('href');
-      if (href && (href.startsWith('http://') || href.startsWith('https://'))) {
-        directUrl = href;
+      if (href) {
+        if (href.startsWith('http://') || href.startsWith('https://')) {
+          directUrl = href;
+        } else if (href.startsWith('/')) {
+          const urlObj = new URL(pageUrl);
+          directUrl = `${urlObj.origin}${href}`;
+        }
       }
     });
   }
 
   // 3. Check for specific IDs or headings in download pages
   if (!directUrl) {
-    const candidateHref = $('#download a').first().attr('href') || $('h2 a').first().attr('href');
+    const candidateHref =
+      $('#download a').first().attr('href') ||
+      $('h2 a').first().attr('href') ||
+      $('table#main a[href*="get.php"]').first().attr('href');
+
     if (candidateHref) {
       if (candidateHref.startsWith('http')) {
         directUrl = candidateHref;

@@ -3,7 +3,7 @@ import { httpClient } from '../httpClient';
 import { ScrapedBook } from '../../types/book';
 
 /**
- * Searches the catalog mirror and parses the HTML table response into ScrapedBook items.
+ * Searches the catalog mirror (e.g. libgen.la) and parses the HTML table response into ScrapedBook items.
  */
 export async function searchLibgenCatalog(
   baseUrl: string,
@@ -15,21 +15,31 @@ export async function searchLibgenCatalog(
   const cleanPath = searchPath.startsWith('/') ? searchPath : `/${searchPath}`;
   const searchUrl = `${cleanBase}${cleanPath}`;
 
-  const params: Record<string, string> = {
-    req: query,
-    open: '0',
-    res: '50',
-    view: 'simple',
-    phrase: '1',
-    column: 'def',
-  };
+  const isIndexPhp = cleanPath.includes('index.php') || cleanBase.includes('libgen.la') || cleanBase.includes('libgen.li');
+
+  const params: Record<string, any> = isIndexPhp
+    ? {
+        req: query,
+        res: '50',
+        columns: ['t', 'a'],
+        objects: ['f', 'e', 's'],
+        topics: ['l', 'f'],
+      }
+    : {
+        req: query,
+        open: '0',
+        res: '50',
+        view: 'simple',
+        phrase: '1',
+        column: 'def',
+      };
 
   const response = await httpClient.get<string>(searchUrl, { params });
   return parseSearchHtml(response.data, cleanBase, fileExtensionFilter);
 }
 
 /**
- * Parses raw HTML table into Catalog/Scraped Book entities.
+ * Parses raw HTML table from libgen.la and compatible mirrors into Catalog/Scraped Book entities.
  */
 export function parseSearchHtml(
   html: string,
@@ -39,7 +49,6 @@ export function parseSearchHtml(
   const $ = cheerio.load(html);
   const results: ScrapedBook[] = [];
 
-  // Libgen standard results table
   $('table').each((_, table) => {
     const rows = $(table).find('tr');
     if (rows.length < 2) return;
@@ -49,33 +58,34 @@ export function parseSearchHtml(
       if (rowIndex === 0) return;
 
       const cells = $(row).find('td');
-      // Standard Libgen table has 9 to 11 columns
-      if (cells.length < 9) return;
+      if (cells.length < 6) return;
 
       const id = $(cells[0]).text().trim();
       const author = $(cells[1]).text().trim();
 
       // Title cell
       const titleCell = $(cells[2]);
-      const titleAnchor = titleCell.find('a[id], a[href*="book"], a').first();
+      const titleAnchor = titleCell.find('a[id], a[href*="book"], a[href*="ads.php"], a').first();
       const rawTitle = titleAnchor.length ? titleAnchor.text().trim() : titleCell.text().trim();
       const title = rawTitle.replace(/\s+/g, ' ');
 
-      const publisher = $(cells[3]).text().trim();
-      const year = $(cells[4]).text().trim();
-      const pages = $(cells[5]).text().trim();
-      const language = $(cells[6]).text().trim();
-      const size = $(cells[7]).text().trim();
-      const extension = $(cells[8]).text().trim().toLowerCase();
+      const publisher = cells.length > 3 ? $(cells[3]).text().trim() : '';
+      const year = cells.length > 4 ? $(cells[4]).text().trim() : '';
+      const pages = cells.length > 5 ? $(cells[5]).text().trim() : '';
+      const language = cells.length > 6 ? $(cells[6]).text().trim() : 'English';
+      const size = cells.length > 7 ? $(cells[7]).text().trim() : 'N/A';
+      const extension = cells.length > 8 ? $(cells[8]).text().trim().toLowerCase() : 'pdf';
 
       // Apply extension filter if provided
-      if (extensionFilter && extension !== extensionFilter) {
+      if (extensionFilter && extension && extension !== extensionFilter) {
         return;
       }
 
-      // Extract 32-character MD5 hash from mirror links
+      // Extract 32-character MD5 hash from libgen.la mirror links or anchors
       let md5 = '';
-      const mirrorAnchors = $(row).find('a[href*="md5="], a[href*="/main/"], a[href*="ads.php"], a[href*="library.lol"]');
+      const mirrorAnchors = $(row).find(
+        'a[href*="md5="], a[href*="/ads.php"], a[href*="/get.php"], a[href*="/main/"], a[href*="library.lol"]'
+      );
 
       mirrorAnchors.each((_, anchor) => {
         if (md5) return;
@@ -106,7 +116,7 @@ export function parseSearchHtml(
           pages,
           language,
           size,
-          extension,
+          extension: extension || 'pdf',
           coverUrl,
           md5,
         });
