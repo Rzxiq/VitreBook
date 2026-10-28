@@ -3,6 +3,7 @@ import {
   StyleSheet,
   View,
   Text,
+  Image,
   TouchableOpacity,
   Switch,
   Alert,
@@ -147,6 +148,7 @@ export const SettingsScreen: React.FC = () => {
         </View>
 
         <View style={styles.aboutContainer}>
+          <Image source={require('../assets/logo.jpg')} style={styles.aboutLogo} />
           <Text style={styles.aboutTitle}>VitreBook</Text>
           <Text style={styles.aboutVersion}>Open-Source Sideloaded E-Book Reader</Text>
           <Text style={styles.aboutSub}>Zero-Backend Client-Side Parsing Engine</Text>
@@ -234,6 +236,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 40,
     marginBottom: 20,
+  },
+  aboutLogo: {
+    width: 68,
+    height: 68,
+    borderRadius: 16,
+    marginBottom: 12,
   },
   aboutTitle: {
     color: '#FFF',

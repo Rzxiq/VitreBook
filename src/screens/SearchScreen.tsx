@@ -3,6 +3,7 @@ import {
   StyleSheet,
   View,
   Text,
+  Image,
   TextInput,
   TouchableOpacity,
   FlatList,
@@ -58,7 +59,10 @@ export const SearchScreen: React.FC = () => {
 
       {/* Top Header & Mirror Indicator */}
       <View style={styles.header}>
-        <Text style={styles.appTitle}>VitreBook</Text>
+        <View style={styles.titleWithLogo}>
+          <Image source={require('../assets/logo.jpg')} style={styles.appLogo} />
+          <Text style={styles.appTitle}>VitreBook</Text>
+        </View>
         <TouchableOpacity
           style={styles.mirrorBadge}
           onPress={() => setShowMirrorModal(true)}
@@ -162,6 +166,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: 8,
+  },
+  titleWithLogo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  appLogo: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
   },
   appTitle: {
     color: '#FFF',
