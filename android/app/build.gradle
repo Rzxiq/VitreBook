@@ -91,7 +91,8 @@ android {
 dependencies {
     implementation("com.facebook.react:react-android")
 
-    if (hermesEnabled.toBoolean()) {
+    def isHermes = project.hasProperty("hermesEnabled") ? project.hermesEnabled.toBoolean() : true
+    if (isHermes) {
         implementation("com.facebook.react:hermes-android")
     } else {
         implementation jscFlavor
