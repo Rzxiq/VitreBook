@@ -10,8 +10,8 @@ import org.junit.Test
 class SearchEngineTest {
 
     @Test
-    fun testEmptyQueryReturnsFeaturedClassics() = runBlocking {
-        val results = SearchEngine.searchAllSources("")
+    fun testEmptyQueryReturnsFeaturedClassics() {
+        val results = SearchEngine.searchLocalArchive("")
         assertEquals(SearchEngine.FEATURED_CLASSICS.size, results.size)
         assertEquals("Pride and Prejudice", results[0].title)
     }
@@ -105,8 +105,8 @@ class SearchEngineTest {
     }
 
     @Test
-    fun testLocalVerifiedSearchFindsMatches() = runBlocking {
-        val matches = SearchEngine.searchAllSources("Doyle")
+    fun testLocalVerifiedSearchFindsMatches() {
+        val matches = SearchEngine.searchLocalArchive("Doyle")
         assertTrue("Searching for Doyle should match Sherlock Holmes", matches.any { it.author.contains("Doyle", ignoreCase = true) })
     }
 }

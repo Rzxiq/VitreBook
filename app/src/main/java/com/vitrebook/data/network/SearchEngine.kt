@@ -6,7 +6,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import org.json.JSONObject
+import com.google.gson.JsonParser
 import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 
@@ -449,9 +449,7 @@ object SearchEngine {
         Log.d(TAG, "Search started for query length: ${cleanQ.length}")
 
         // 1. First check verified local direct PDF archive
-        val localMatches = ALL_VERIFIED_BOOKS.filter {
-            it.title.contains(cleanQ, ignoreCase = true) || it.author.contains(cleanQ, ignoreCase = true)
-        }
+        val localMatches = searchLocalArchive(cleanQ)
 
         // 2. Query Project Gutenberg via Gutendex open API
         val remoteMatches = try {
@@ -469,6 +467,14 @@ object SearchEngine {
 
         // Return empty list if no matches found; do not fall back to unrelated samples
         combined
+    }
+
+    fun searchLocalArchive(query: String): List<Book> {
+        val cleanQ = query.trim()
+        if (cleanQ.isEmpty()) return FEATURED_CLASSICS
+        return ALL_VERIFIED_BOOKS.filter {
+            it.title.contains(cleanQ, ignoreCase = true) || it.author.contains(cleanQ, ignoreCase = true)
+        }
     }
 
     /**
@@ -498,46 +504,47 @@ object SearchEngine {
     fun parseGutenbergResponse(jsonString: String): List<Book> {
         val list = mutableListOf<Book>()
         try {
-            val json = JSONObject(jsonString)
-            val results = json.optJSONArray("results") ?: return emptyList()
+            val root = JsonParser.parseString(jsonString).asJsonObject
+            val results = if (root.has("results") && root.get("results").isJsonArray) root.getAsJsonArray("results") else return emptyList()
 
-            for (i in 0 until results.length()) {
-                val item = results.optJSONObject(i) ?: continue
-                val id = item.optInt("id", 0)
+            for (element in results) {
+                if (!element.isJsonObject) continue
+                val item = element.asJsonObject
+                val id = if (item.has("id") && !item.get("id").isJsonNull) item.get("id").asInt else 0
                 if (id == 0) continue
 
-                val rawTitle = item.optString("title", "").trim()
+                val rawTitle = if (item.has("title") && !item.get("title").isJsonNull) item.get("title").asString.trim() else ""
                 if (rawTitle.isEmpty()) continue
 
                 // Format Author
-                val authorsArr = item.optJSONArray("authors")
-                val author = if (authorsArr != null && authorsArr.length() > 0) {
-                    val authorObj = authorsArr.optJSONObject(0)
-                    val rawName = authorObj?.optString("name", "Unknown Author") ?: "Unknown Author"
+                val authorsArr = if (item.has("authors") && item.get("authors").isJsonArray) item.getAsJsonArray("authors") else null
+                val author = if (authorsArr != null && authorsArr.size() > 0 && authorsArr.get(0).isJsonObject) {
+                    val authorObj = authorsArr.get(0).asJsonObject
+                    val rawName = if (authorObj.has("name") && !authorObj.get("name").isJsonNull) authorObj.get("name").asString else "Unknown Author"
                     formatAuthorName(rawName)
                 } else {
                     "Unknown Author"
                 }
 
                 // Formats & Direct Download URLs
-                val formatsObj = item.optJSONObject("formats")
-                val coverUrl = formatsObj?.optString("image/jpeg")?.ifEmpty { null }
-                val epubUrl = formatsObj?.optString("application/epub+zip")
-                val textUrl = formatsObj?.optString("text/plain; charset=utf-8")
-                val htmlUrl = formatsObj?.optString("text/html")
+                val formatsObj = if (item.has("formats") && item.get("formats").isJsonObject) item.getAsJsonObject("formats") else null
+                val coverUrl = if (formatsObj != null && formatsObj.has("image/jpeg") && !formatsObj.get("image/jpeg").isJsonNull) formatsObj.get("image/jpeg").asString else null
+                val epubUrl = if (formatsObj != null && formatsObj.has("application/epub+zip") && !formatsObj.get("application/epub+zip").isJsonNull) formatsObj.get("application/epub+zip").asString else null
+                val textUrl = if (formatsObj != null && formatsObj.has("text/plain; charset=utf-8") && !formatsObj.get("text/plain; charset=utf-8").isJsonNull) formatsObj.get("text/plain; charset=utf-8").asString else null
+                val htmlUrl = if (formatsObj != null && formatsObj.has("text/html") && !formatsObj.get("text/html").isJsonNull) formatsObj.get("text/html").asString else null
                 val downloadUrl = epubUrl ?: textUrl ?: htmlUrl
 
                 // Languages
-                val langArr = item.optJSONArray("languages")
-                val language = if (langArr != null && langArr.length() > 0) {
-                    val langCode = langArr.optString(0, "en")
+                val langArr = if (item.has("languages") && item.get("languages").isJsonArray) item.getAsJsonArray("languages") else null
+                val language = if (langArr != null && langArr.size() > 0) {
+                    val langCode = langArr.get(0).asString
                     if (langCode == "en") "English" else langCode.uppercase()
                 } else "English"
 
                 // Summaries
-                val summariesArr = item.optJSONArray("summaries")
-                val summary = if (summariesArr != null && summariesArr.length() > 0) {
-                    summariesArr.optString(0)
+                val summariesArr = if (item.has("summaries") && item.get("summaries").isJsonArray) item.getAsJsonArray("summaries") else null
+                val summary = if (summariesArr != null && summariesArr.size() > 0) {
+                    summariesArr.get(0).asString
                 } else null
 
                 list.add(
@@ -560,7 +567,7 @@ object SearchEngine {
                 )
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to parse Gutenberg response", e)
+            Log.e(TAG, "Failed to parse Gutenberg response: ${e.message}")
         }
         return list
     }
