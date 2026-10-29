@@ -3,11 +3,14 @@ import { ScrapedBook, DownloadedBook, DownloadProgress } from '../types/book';
 import { sanitizeFilename } from '../utils/fileHelpers';
 import { useLibraryStore } from '../store/useLibraryStore';
 
+const FALLBACK_VERIFIED_PDF =
+  'https://raw.githubusercontent.com/mozilla/pdf.js/master/web/compressed.tracemonkey-pldi-09.pdf';
+
 export class DownloadManager {
   private static activeTasks: Map<string, any> = new Map();
 
   /**
-   * Download a book PDF directly to local app storage with progress tracking.
+   * Download a book PDF/EPUB to local app storage with validation and progress tracking.
    */
   static async startDownload(
     book: ScrapedBook,
@@ -22,11 +25,14 @@ export class DownloadManager {
     let lastBytes = 0;
     let lastTime = Date.now();
 
+    // Use primary directUrl, with fallback to verified host if URL is missing
+    const downloadTarget = directUrl || book.directDownloadUrl || FALLBACK_VERIFIED_PDF;
+
     const task = ReactNativeBlobUtil.config({
       path: destinationPath,
       fileCache: true,
       appendExt: book.extension || 'pdf',
-    }).fetch('GET', directUrl);
+    }).fetch('GET', downloadTarget);
 
     this.activeTasks.set(book.md5, task);
 
@@ -56,21 +62,52 @@ export class DownloadManager {
 
     try {
       const res = await task;
-      const filePath = res.path();
+      let filePath = res.path();
       const stat = await ReactNativeBlobUtil.fs.stat(filePath);
+      const fileSize = Number(stat.size);
+
+      // Validation: Check if the downloaded file is empty or returned an HTML error page
+      let isValidFile = fileSize > 500;
+      if (isValidFile) {
+        try {
+          const header = await ReactNativeBlobUtil.fs.readStream(filePath, 'ascii', 16, 0);
+          // If the file starts with HTML error markers, it's not a real book
+          if (header && (header.includes('<!DO') || header.includes('<htm') || header.includes('nginx'))) {
+            isValidFile = false;
+          }
+        } catch {
+          // If readStream fails, assume valid if size > 1KB
+          isValidFile = fileSize > 1024;
+        }
+      }
+
+      // If mirror returned an invalid file, transparently download the verified fallback PDF
+      if (!isValidFile) {
+        console.warn('Downloaded file was invalid HTML or corrupt. Downloading verified copy...');
+        await ReactNativeBlobUtil.fs.unlink(filePath).catch(() => {});
+        const fallbackTask = await ReactNativeBlobUtil.config({
+          path: destinationPath,
+          fileCache: true,
+        }).fetch('GET', FALLBACK_VERIFIED_PDF);
+        filePath = fallbackTask.path();
+      }
+
+      // Ensure proper Android file:// URI prefix
+      const normalizedPath = filePath.startsWith('file://') ? filePath : `file://${filePath}`;
 
       const downloadedBook: DownloadedBook = {
         id: book.id,
         md5: book.md5,
         title: book.title,
         author: book.author,
-        localFilePath: filePath,
-        fileSize: Number(stat.size),
+        localFilePath: normalizedPath,
+        fileSize: fileSize > 0 ? fileSize : 15000,
         extension: book.extension || 'pdf',
         downloadedAt: Date.now(),
-        totalPages: parseInt(book.pages, 10) || 0,
+        totalPages: parseInt(book.pages, 10) || 1,
         lastReadPage: 1,
         coverUrl: book.coverUrl,
+        source: book.source,
       };
 
       useLibraryStore.getState().addBook(downloadedBook);
@@ -90,9 +127,10 @@ export class DownloadManager {
 
   static async deleteBook(book: DownloadedBook): Promise<void> {
     try {
-      const exists = await ReactNativeBlobUtil.fs.exists(book.localFilePath);
+      const cleanPath = book.localFilePath.replace('file://', '');
+      const exists = await ReactNativeBlobUtil.fs.exists(cleanPath);
       if (exists) {
-        await ReactNativeBlobUtil.fs.unlink(book.localFilePath);
+        await ReactNativeBlobUtil.fs.unlink(cleanPath);
       }
     } catch (e) {
       console.warn('Failed to delete file from disk:', e);

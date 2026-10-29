@@ -30,17 +30,21 @@ export const UpdateBanner: React.FC = () => {
   return (
     <View style={styles.banner}>
       <View style={styles.textContainer}>
-        <Text style={styles.title}>Update Available (v{release.version})</Text>
+        <View style={styles.badgeRow}>
+          <View style={styles.dot} />
+          <Text style={styles.badgeText}>NEW RELEASE AVAILABLE</Text>
+        </View>
+        <Text style={styles.title}>Version {release.version}</Text>
         <Text style={styles.subtitle} numberOfLines={1}>
           {release.releaseNotes}
         </Text>
       </View>
       <View style={styles.actionRow}>
         <TouchableOpacity style={styles.dismissBtn} onPress={() => setDismissed(true)}>
-          <Text style={styles.dismissText}>Later</Text>
+          <Text style={styles.dismissText}>Dismiss</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.updateBtn} onPress={handleDownload}>
-          <Text style={styles.updateText}>Update APK</Text>
+          <Text style={styles.updateText}>Install APK</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -49,13 +53,13 @@ export const UpdateBanner: React.FC = () => {
 
 const styles = StyleSheet.create({
   banner: {
-    backgroundColor: '#1E293B',
-    padding: 12,
+    backgroundColor: '#121215',
+    padding: 14,
     marginHorizontal: 16,
     marginVertical: 8,
-    borderRadius: 10,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#38BDF8',
+    borderColor: '#38BDF855',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -64,37 +68,56 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 10,
   },
-  title: {
+  badgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginBottom: 4,
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#38BDF8',
+  },
+  badgeText: {
     color: '#38BDF8',
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.6,
+  },
+  title: {
+    color: '#FAFAFA',
     fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   subtitle: {
-    color: '#94A3B8',
+    color: '#71717A',
     fontSize: 11,
     marginTop: 2,
   },
   actionRow: {
     flexDirection: 'row',
     gap: 8,
+    alignItems: 'center',
   },
   dismissBtn: {
     paddingVertical: 6,
     paddingHorizontal: 8,
   },
   dismissText: {
-    color: '#64748B',
+    color: '#71717A',
     fontSize: 12,
   },
   updateBtn: {
     backgroundColor: '#38BDF8',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
   },
   updateText: {
-    color: '#0F172A',
+    color: '#09090B',
     fontSize: 12,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
 });

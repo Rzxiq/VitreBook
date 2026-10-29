@@ -10,11 +10,11 @@ import {
   ScrollView,
   SafeAreaView,
   ActivityIndicator,
+  Linking,
 } from 'react-native';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { useLibraryStore } from '../store/useLibraryStore';
 import { checkForAppUpdates } from '../services/updateService';
-import { MirrorSelectorModal } from '../components/MirrorSelectorModal';
 import packageJson from '../../package.json';
 
 export const SettingsScreen: React.FC = () => {
@@ -23,13 +23,9 @@ export const SettingsScreen: React.FC = () => {
     setDefaultNightMode,
     autoCheckUpdates,
     setAutoCheckUpdates,
-    getActiveMirror,
   } = useSettingsStore();
 
   const { clearLibrary, books } = useLibraryStore();
-  const activeMirror = getActiveMirror();
-
-  const [showMirrorModal, setShowMirrorModal] = useState(false);
   const [checkingUpdate, setCheckingUpdate] = useState(false);
 
   const handleCheckUpdate = async () => {
@@ -38,15 +34,25 @@ export const SettingsScreen: React.FC = () => {
       const release = await checkForAppUpdates();
       if (release.hasUpdate) {
         Alert.alert(
-          'Update Found!',
-          `Version ${release.version} is now available on GitHub.\n\nNotes: ${release.releaseNotes}`,
-          [{ text: 'OK' }]
+          'Update Available',
+          `Version ${release.version} is available on GitHub.\n\n${release.releaseNotes}`,
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Download APK',
+              onPress: () => {
+                if (release.apkDownloadUrl) {
+                  Linking.openURL(release.apkDownloadUrl);
+                }
+              },
+            },
+          ]
         );
       } else {
         Alert.alert('Up to Date', `You are running the latest version (v${packageJson.version}).`);
       }
     } catch {
-      Alert.alert('Error', 'Unable to check GitHub Releases API.');
+      Alert.alert('Network Error', 'Unable to reach GitHub Releases API.');
     } finally {
       setCheckingUpdate(false);
     }
@@ -55,7 +61,7 @@ export const SettingsScreen: React.FC = () => {
   const handleClearCache = () => {
     Alert.alert(
       'Clear Local Library',
-      'This will reset your library state and bookmark history. Stored PDFs will be unregistered.',
+      'This will reset your library state and bookmark history. Downloaded files can be re-indexed or removed.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -63,102 +69,180 @@ export const SettingsScreen: React.FC = () => {
           style: 'destructive',
           onPress: () => {
             clearLibrary();
-            Alert.alert('Cleared', 'Local library records have been reset.');
+            Alert.alert('Reset', 'Library records and reading history cleared.');
           },
         },
       ]
     );
   };
 
+  const bookCount = Object.keys(books).length;
+
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.headerTitle}>Settings</Text>
+      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Settings</Text>
+          <Text style={styles.headerSubtitle}>App configuration & storage</Text>
+        </View>
 
-        {/* Catalog Mirrors Section */}
-        <Text style={styles.sectionHeader}>CATALOG & MIRRORS</Text>
-        <View style={styles.card}>
-          <TouchableOpacity
-            style={styles.row}
-            onPress={() => setShowMirrorModal(true)}
-          >
-            <View>
-              <Text style={styles.rowTitle}>Active Mirror</Text>
-              <Text style={styles.rowSubtitle}>{activeMirror.name} ({activeMirror.baseUrl})</Text>
+        {/* Multi-Source Engine Status */}
+        <View style={styles.sectionHeaderWrap}>
+          <Text style={styles.sectionHeader}>MULTI-SOURCE INDEXING ENGINE</Text>
+          <View style={styles.badgeLive}>
+            <View style={styles.liveDot} />
+            <Text style={styles.liveText}>AUTO-AGGREGATING</Text>
+          </View>
+        </View>
+
+        <View style={styles.bentoCard}>
+          <View style={styles.engineRow}>
+            <View style={styles.engineIconWrap}>
+              <Text style={styles.engineIcon}>🏛️</Text>
             </View>
-            <Text style={styles.chevron}>›</Text>
-          </TouchableOpacity>
+            <View style={styles.engineMeta}>
+              <Text style={styles.engineName}>Open Library</Text>
+              <Text style={styles.engineDesc}>Millions of editions, high-res covers & archive records</Text>
+            </View>
+            <View style={[styles.sourceBadge, styles.sourceBadgeSky]}>
+              <Text style={styles.sourceBadgeSkyText}>Online</Text>
+            </View>
+          </View>
+
+          <View style={styles.divider} />
+
+          <View style={styles.engineRow}>
+            <View style={styles.engineIconWrap}>
+              <Text style={styles.engineIcon}>📖</Text>
+            </View>
+            <View style={styles.engineMeta}>
+              <Text style={styles.engineName}>Project Gutenberg</Text>
+              <Text style={styles.engineDesc}>70,000+ public-domain classics, direct verified PDF links</Text>
+            </View>
+            <View style={[styles.sourceBadge, styles.sourceBadgeEmerald]}>
+              <Text style={styles.sourceBadgeEmeraldText}>Online</Text>
+            </View>
+          </View>
+
+          <View style={styles.divider} />
+
+          <View style={styles.engineRow}>
+            <View style={styles.engineIconWrap}>
+              <Text style={styles.engineIcon}>🌐</Text>
+            </View>
+            <View style={styles.engineMeta}>
+              <Text style={styles.engineName}>Decentralized Mirrors</Text>
+              <Text style={styles.engineDesc}>Automatic fallback across mirror clusters</Text>
+            </View>
+            <View style={[styles.sourceBadge, styles.sourceBadgePurple]}>
+              <Text style={styles.sourceBadgePurpleText}>Active</Text>
+            </View>
+          </View>
         </View>
 
         {/* Reader Preferences */}
         <Text style={styles.sectionHeader}>READER PREFERENCES</Text>
-        <View style={styles.card}>
-          <View style={styles.row}>
-            <View>
-              <Text style={styles.rowTitle}>Default Night Mode</Text>
-              <Text style={styles.rowSubtitle}>Invert colors for night reading</Text>
+        <View style={styles.bentoCard}>
+          <View style={styles.settingRow}>
+            <View style={styles.settingTextWrap}>
+              <Text style={styles.settingTitle}>Default Night Mode</Text>
+              <Text style={styles.settingSubtitle}>Invert colors to black background on reader launch</Text>
             </View>
             <Switch
               value={defaultNightMode}
               onValueChange={setDefaultNightMode}
-              thumbColor={defaultNightMode ? '#E50914' : '#666'}
-              trackColor={{ false: '#333', true: '#77181C' }}
+              thumbColor={defaultNightMode ? '#E50914' : '#71717A'}
+              trackColor={{ false: '#27272A', true: '#77181C' }}
             />
+          </View>
+
+          <View style={styles.divider} />
+
+          <View style={styles.settingRow}>
+            <View style={styles.settingTextWrap}>
+              <Text style={styles.settingTitle}>PDF Render Engine</Text>
+              <Text style={styles.settingSubtitle}>Native Android Pdfium with fast memory cache</Text>
+            </View>
+            <View style={styles.infoPill}>
+              <Text style={styles.infoPillText}>v6.7.5</Text>
+            </View>
           </View>
         </View>
 
-        {/* App Updates Section */}
-        <Text style={styles.sectionHeader}>UPDATES & SYSTEM</Text>
-        <View style={styles.card}>
-          <View style={styles.row}>
-            <View>
-              <Text style={styles.rowTitle}>Auto Check Updates</Text>
-              <Text style={styles.rowSubtitle}>Check GitHub Releases on launch</Text>
+        {/* App Updates & Storage */}
+        <Text style={styles.sectionHeader}>UPDATES & STORAGE</Text>
+        <View style={styles.bentoCard}>
+          <View style={styles.settingRow}>
+            <View style={styles.settingTextWrap}>
+              <Text style={styles.settingTitle}>Auto Check Updates</Text>
+              <Text style={styles.settingSubtitle}>Check GitHub Releases when the app launches</Text>
             </View>
             <Switch
               value={autoCheckUpdates}
               onValueChange={setAutoCheckUpdates}
-              thumbColor={autoCheckUpdates ? '#E50914' : '#666'}
-              trackColor={{ false: '#333', true: '#77181C' }}
+              thumbColor={autoCheckUpdates ? '#E50914' : '#71717A'}
+              trackColor={{ false: '#27272A', true: '#77181C' }}
             />
           </View>
+
+          <View style={styles.divider} />
 
           <TouchableOpacity
             style={styles.actionRow}
             onPress={handleCheckUpdate}
             disabled={checkingUpdate}
           >
-            <Text style={styles.actionText}>Check for Updates</Text>
+            <View style={styles.settingTextWrap}>
+              <Text style={styles.actionTitle}>Check for Updates</Text>
+              <Text style={styles.settingSubtitle}>GitHub: Rzxiq/VitreBook</Text>
+            </View>
             {checkingUpdate ? (
               <ActivityIndicator size="small" color="#E50914" />
             ) : (
-              <Text style={styles.versionTag}>v{packageJson.version}</Text>
+              <View style={styles.versionBadge}>
+                <Text style={styles.versionBadgeText}>v{packageJson.version}</Text>
+              </View>
             )}
           </TouchableOpacity>
-        </View>
 
-        {/* Storage Management */}
-        <Text style={styles.sectionHeader}>STORAGE</Text>
-        <View style={styles.card}>
+          <View style={styles.divider} />
+
           <TouchableOpacity style={styles.actionRow} onPress={handleClearCache}>
-            <Text style={[styles.actionText, { color: '#FF5252' }]}>
-              Clear Library Cache ({Object.keys(books).length} books)
-            </Text>
+            <View style={styles.settingTextWrap}>
+              <Text style={styles.dangerTitle}>Clear Library Cache</Text>
+              <Text style={styles.settingSubtitle}>{bookCount} registered items in memory</Text>
+            </View>
+            <Text style={styles.chevron}>›</Text>
           </TouchableOpacity>
         </View>
 
-        <View style={styles.aboutContainer}>
+        {/* 21st.dev Style About Bento Card */}
+        <View style={styles.aboutCard}>
           <Image source={require('../assets/logo.jpg')} style={styles.aboutLogo} />
           <Text style={styles.aboutTitle}>VitreBook</Text>
-          <Text style={styles.aboutVersion}>Open-Source Sideloaded E-Book Reader</Text>
-          <Text style={styles.aboutSub}>Zero-Backend Client-Side Parsing Engine</Text>
+          <Text style={styles.aboutTagline}>Sideloaded Open-Source E-Book Reader</Text>
+
+          <View style={styles.aboutChips}>
+            <View style={styles.chip}>
+              <Text style={styles.chipText}>Zero Backend</Text>
+            </View>
+            <View style={styles.chip}>
+              <Text style={styles.chipText}>Client-Side DOM</Text>
+            </View>
+            <View style={styles.chip}>
+              <Text style={styles.chipText}>arm64-v8a</Text>
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={styles.githubLink}
+            onPress={() => Linking.openURL('https://github.com/Rzxiq/VitreBook')}
+          >
+            <Text style={styles.githubLinkText}>github.com/Rzxiq/VitreBook ↗</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
-
-      <MirrorSelectorModal
-        visible={showMirrorModal}
-        onClose={() => setShowMirrorModal(false)}
-      />
     </SafeAreaView>
   );
 };
@@ -166,41 +250,163 @@ export const SettingsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#121212',
+    backgroundColor: '#09090B',
   },
   container: {
     padding: 16,
+    paddingBottom: 40,
+  },
+  header: {
+    marginBottom: 20,
+    marginTop: 8,
   },
   headerTitle: {
-    color: '#FFF',
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
+    color: '#FAFAFA',
+    fontSize: 26,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+  },
+  headerSubtitle: {
+    color: '#71717A',
+    fontSize: 13,
+    marginTop: 2,
+  },
+  sectionHeaderWrap: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+    marginTop: 12,
   },
   sectionHeader: {
-    color: '#8E8E93',
-    fontSize: 12,
-    fontWeight: 'bold',
+    color: '#71717A',
+    fontSize: 11,
+    fontWeight: '700',
     letterSpacing: 0.8,
     marginBottom: 8,
-    marginTop: 12,
-    marginLeft: 4,
+    marginTop: 14,
+    marginLeft: 2,
   },
-  card: {
-    backgroundColor: '#1E1E1E',
-    borderRadius: 12,
+  badgeLive: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#064E3B33',
+    borderColor: '#064E3B',
     borderWidth: 1,
-    borderColor: '#2A2A2A',
-    overflow: 'hidden',
-    marginBottom: 10,
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    gap: 5,
   },
-  row: {
+  liveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#10B981',
+  },
+  liveText: {
+    color: '#10B981',
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+  },
+  bentoCard: {
+    backgroundColor: '#121215',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#27272A',
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  engineRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    gap: 12,
+  },
+  engineIconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: '#18181B',
+    borderWidth: 1,
+    borderColor: '#27272A',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  engineIcon: {
+    fontSize: 18,
+  },
+  engineMeta: {
+    flex: 1,
+  },
+  engineName: {
+    color: '#FAFAFA',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  engineDesc: {
+    color: '#71717A',
+    fontSize: 11,
+    marginTop: 2,
+  },
+  sourceBadge: {
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderWidth: 1,
+  },
+  sourceBadgeSky: {
+    backgroundColor: '#0C4A6E33',
+    borderColor: '#0284C7',
+  },
+  sourceBadgeSkyText: {
+    color: '#38BDF8',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  sourceBadgeEmerald: {
+    backgroundColor: '#064E3B33',
+    borderColor: '#059669',
+  },
+  sourceBadgeEmeraldText: {
+    color: '#10B981',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  sourceBadgePurple: {
+    backgroundColor: '#3B076433',
+    borderColor: '#7C3AED',
+  },
+  sourceBadgePurpleText: {
+    color: '#A855F7',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#1E1E24',
+    marginHorizontal: 14,
+  },
+  settingRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#252525',
+  },
+  settingTextWrap: {
+    flex: 1,
+    marginRight: 12,
+  },
+  settingTitle: {
+    color: '#FAFAFA',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  settingSubtitle: {
+    color: '#71717A',
+    fontSize: 12,
+    marginTop: 2,
   },
   actionRow: {
     flexDirection: 'row',
@@ -208,54 +414,106 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
   },
-  rowTitle: {
-    color: '#F0F0F0',
-    fontSize: 15,
+  actionTitle: {
+    color: '#FAFAFA',
+    fontSize: 14,
     fontWeight: '500',
   },
-  rowSubtitle: {
-    color: '#888',
+  dangerTitle: {
+    color: '#EF4444',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  infoPill: {
+    backgroundColor: '#18181B',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#27272A',
+  },
+  infoPillText: {
+    color: '#A1A1AA',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  versionBadge: {
+    backgroundColor: '#18181B',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#27272A',
+  },
+  versionBadgeText: {
+    color: '#A1A1AA',
     fontSize: 12,
-    marginTop: 2,
+    fontWeight: '600',
   },
   chevron: {
-    color: '#888',
-    fontSize: 20,
+    color: '#71717A',
+    fontSize: 18,
     fontWeight: 'bold',
   },
-  actionText: {
-    color: '#FFF',
-    fontSize: 15,
-    fontWeight: '500',
-  },
-  versionTag: {
-    color: '#888',
-    fontSize: 13,
-  },
-  aboutContainer: {
+  aboutCard: {
+    backgroundColor: '#121215',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#27272A',
+    padding: 24,
     alignItems: 'center',
-    marginTop: 40,
+    marginTop: 24,
     marginBottom: 20,
   },
   aboutLogo: {
     width: 68,
     height: 68,
-    borderRadius: 16,
+    borderRadius: 18,
     marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#27272A',
   },
   aboutTitle: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: 'bold',
+    color: '#FAFAFA',
+    fontSize: 18,
+    fontWeight: '800',
+    letterSpacing: -0.3,
   },
-  aboutVersion: {
-    color: '#888',
+  aboutTagline: {
+    color: '#71717A',
     fontSize: 12,
     marginTop: 4,
   },
-  aboutSub: {
-    color: '#555',
+  aboutChips: {
+    flexDirection: 'row',
+    gap: 6,
+    marginTop: 14,
+    marginBottom: 16,
+  },
+  chip: {
+    backgroundColor: '#18181B',
+    borderWidth: 1,
+    borderColor: '#27272A',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  chipText: {
+    color: '#A1A1AA',
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  githubLink: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    backgroundColor: '#18181B',
+    borderWidth: 1,
+    borderColor: '#27272A',
+  },
+  githubLinkText: {
+    color: '#38BDF8',
     fontSize: 11,
-    marginTop: 2,
+    fontWeight: '600',
   },
 });

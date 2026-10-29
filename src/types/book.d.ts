@@ -10,6 +10,8 @@ export interface ScrapedBook {
   extension: string;
   coverUrl?: string;
   md5: string;
+  source?: 'Open Library' | 'Gutenberg' | 'Libgen' | 'Curated' | string;
+  description?: string;
   directDownloadUrl?: string;
 }
 
@@ -27,23 +29,7 @@ export interface DownloadedBook {
   totalPages: number;
   lastReadPage: number;
   coverUrl?: string;
-}
-
-export interface MirrorConfig {
-  id: string;
-  name: string;
-  baseUrl: string;
-  searchPath: string;
-  resolverUrlTemplate: string;
-  isActive: boolean;
-}
-
-export type SourceConfig = MirrorConfig;
-
-export interface RemoteConfigResponse {
-  version: number;
-  updatedAt: string;
-  mirrors: MirrorConfig[];
+  source?: string;
 }
 
 export interface DownloadProgress {

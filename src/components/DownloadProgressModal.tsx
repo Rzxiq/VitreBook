@@ -16,7 +16,7 @@ export const DownloadProgressModal: React.FC<DownloadProgressModalProps> = ({
   progress,
   onCancel,
 }) => {
-  const percentage = progress?.percentage || 0;
+  const percentage = Math.min(100, Math.max(0, progress?.percentage || 0));
   const written = formatBytes(progress?.bytesWritten || 0);
   const total = formatBytes(progress?.contentLength || 0);
   const speed = formatSpeed(progress?.speedBytesPerSec || 0);
@@ -25,24 +25,31 @@ export const DownloadProgressModal: React.FC<DownloadProgressModalProps> = ({
     <Modal visible={visible} transparent animationType="fade">
       <View style={styles.overlay}>
         <View style={styles.dialog}>
-          <Text style={styles.header}>Downloading Book</Text>
+          <View style={styles.badgeRow}>
+            <View style={styles.liveDot} />
+            <Text style={styles.badgeText}>DOWNLOADING</Text>
+          </View>
+
           <Text style={styles.title} numberOfLines={2}>
             {bookTitle}
           </Text>
 
-          {/* Progress Bar Container */}
+          {/* Progress Bar Track */}
           <View style={styles.track}>
             <View style={[styles.fill, { width: `${percentage}%` }]} />
           </View>
 
           <View style={styles.statsRow}>
-            <Text style={styles.statsText}>{percentage}%</Text>
-            <Text style={styles.statsText}>
-              {written} / {total}
+            <Text style={styles.percentText}>{percentage}%</Text>
+            <Text style={styles.sizeText}>
+              {written} <Text style={styles.slash}>/</Text> {total}
             </Text>
           </View>
 
-          <Text style={styles.speedText}>Speed: {speed}</Text>
+          <View style={styles.speedRow}>
+            <Text style={styles.speedLabel}>Transfer Rate:</Text>
+            <Text style={styles.speedVal}>{speed}</Text>
+          </View>
 
           <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
             <Text style={styles.cancelText}>Cancel Download</Text>
@@ -56,65 +63,101 @@ export const DownloadProgressModal: React.FC<DownloadProgressModalProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 24,
+    padding: 20,
   },
   dialog: {
     width: '100%',
-    backgroundColor: '#1E1E1E',
-    borderRadius: 16,
-    padding: 20,
+    backgroundColor: '#121215',
+    borderRadius: 20,
+    padding: 22,
     borderWidth: 1,
-    borderColor: '#333333',
+    borderColor: '#27272A',
   },
-  header: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 8,
+  badgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 10,
+  },
+  liveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#10B981',
+  },
+  badgeText: {
+    color: '#10B981',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.8,
   },
   title: {
-    color: '#CCCCCC',
-    fontSize: 14,
-    marginBottom: 16,
-    lineHeight: 20,
+    color: '#FAFAFA',
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 18,
+    lineHeight: 22,
+    letterSpacing: -0.3,
   },
   track: {
-    height: 8,
-    backgroundColor: '#2A2A2A',
-    borderRadius: 4,
+    height: 6,
+    backgroundColor: '#1E1E24',
+    borderRadius: 3,
     overflow: 'hidden',
-    marginBottom: 10,
+    marginBottom: 12,
   },
   fill: {
     height: '100%',
-    backgroundColor: '#E50914',
+    backgroundColor: '#10B981',
+    borderRadius: 3,
   },
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 4,
+    alignItems: 'center',
+    marginBottom: 8,
   },
-  statsText: {
-    color: '#9E9E9E',
+  percentText: {
+    color: '#FAFAFA',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  sizeText: {
+    color: '#A1A1AA',
     fontSize: 12,
   },
-  speedText: {
-    color: '#707070',
+  slash: {
+    color: '#52525B',
+  },
+  speedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 18,
+  },
+  speedLabel: {
+    color: '#71717A',
     fontSize: 12,
-    marginBottom: 16,
+  },
+  speedVal: {
+    color: '#38BDF8',
+    fontSize: 12,
+    fontWeight: '600',
   },
   cancelButton: {
-    backgroundColor: '#2A2A2A',
+    backgroundColor: '#18181B',
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 12,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#27272A',
   },
   cancelText: {
-    color: '#FF5252',
-    fontSize: 14,
+    color: '#EF4444',
+    fontSize: 13,
     fontWeight: '600',
   },
 });

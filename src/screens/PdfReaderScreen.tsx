@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -6,11 +6,11 @@ import {
   TouchableOpacity,
   StatusBar,
   SafeAreaView,
-  Dimensions,
   ActivityIndicator,
   Modal,
   TextInput,
   Alert,
+  Linking,
 } from 'react-native';
 import Pdf from 'react-native-pdf';
 import { useRoute, useNavigation } from '@react-navigation/native';
@@ -36,7 +36,7 @@ export const PdfReaderScreen: React.FC = () => {
   const initialPage = book?.lastReadPage && book.lastReadPage > 0 ? book.lastReadPage : 1;
 
   const [currentPage, setCurrentPage] = useState<number>(initialPage);
-  const [totalPages, setTotalPages] = useState<number>(book?.totalPages || 0);
+  const [totalPages, setTotalPages] = useState<number>(book?.totalPages || 1);
   const [theme, setTheme] = useState<ReaderTheme>('dark');
   const [showControls, setShowControls] = useState<boolean>(true);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -46,11 +46,31 @@ export const PdfReaderScreen: React.FC = () => {
   const [jumpModalVisible, setJumpModalVisible] = useState(false);
   const [jumpInput, setJumpInput] = useState('');
 
-  // Auto-save page progress
+  // Format URI properly for Android native PdfView
+  const cleanUri = React.useMemo(() => {
+    if (!filePath) return '';
+    if (filePath.startsWith('file://') || filePath.startsWith('http://') || filePath.startsWith('https://')) {
+      return filePath;
+    }
+    return `file://${filePath}`;
+  }, [filePath]);
+
+  // Watchdog timer: Automatically dismiss loading overlay after 3.5s to prevent infinite spinner
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 3500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Auto-save page progress & dismiss loading when page renders
   const handlePageChanged = useCallback(
     (page: number, numberOfPages: number) => {
       setCurrentPage(page);
-      setTotalPages(numberOfPages);
+      if (numberOfPages > 0) {
+        setTotalPages(numberOfPages);
+      }
+      setIsLoading(false);
       updateLastReadPage(md5, page, numberOfPages);
     },
     [md5, updateLastReadPage]
@@ -64,9 +84,23 @@ export const PdfReaderScreen: React.FC = () => {
     }
     pdfRef.current?.setPage(pageNum);
     setCurrentPage(pageNum);
+    setIsLoading(false);
     updateLastReadPage(md5, pageNum, totalPages);
     setJumpModalVisible(false);
     setJumpInput('');
+  };
+
+  const handleOpenExternal = async () => {
+    try {
+      const canOpen = await Linking.canOpenURL(cleanUri);
+      if (canOpen) {
+        await Linking.openURL(cleanUri);
+      } else {
+        Alert.alert('Open Failed', 'No external PDF reader found to open this document.');
+      }
+    } catch {
+      Alert.alert('External Viewer', `File is stored at: ${cleanUri}`);
+    }
   };
 
   const progressPercent =
@@ -84,10 +118,10 @@ export const PdfReaderScreen: React.FC = () => {
       <StatusBar
         hidden={!showControls}
         barStyle={theme === 'light' ? 'dark-content' : 'light-content'}
-        backgroundColor={theme === 'dark' ? '#121212' : theme === 'sepia' ? '#F4ECD8' : '#FFFFFF'}
+        backgroundColor={theme === 'dark' ? '#09090B' : theme === 'sepia' ? '#F4ECD8' : '#FFFFFF'}
       />
 
-      {/* Mobbin-Inspired Top Floating Header */}
+      {/* 21st.dev-Inspired Top Floating Glass Header */}
       {showControls && (
         <View
           style={[
@@ -97,10 +131,8 @@ export const PdfReaderScreen: React.FC = () => {
             theme === 'light' && styles.lightBar,
           ]}
         >
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
-            <Text style={[styles.backText, theme === 'light' ? styles.darkText : styles.lightText]}>
-              ✕
-            </Text>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeBtn} activeOpacity={0.7}>
+            <Text style={[styles.closeIcon, theme === 'light' ? styles.darkText : styles.lightText]}>✕</Text>
           </TouchableOpacity>
 
           <View style={styles.titleContainer}>
@@ -111,7 +143,7 @@ export const PdfReaderScreen: React.FC = () => {
               {title || 'Document Reader'}
             </Text>
             <Text style={styles.headerSubtitle}>
-              {totalPages > 0 ? `${progressPercent}% completed` : 'Reading'}
+              {totalPages > 0 ? `Page ${currentPage} of ${totalPages} • ${progressPercent}%` : 'Reading'}
             </Text>
           </View>
 
@@ -139,13 +171,13 @@ export const PdfReaderScreen: React.FC = () => {
         </View>
       )}
 
-      {/* PDF View Container */}
+      {/* PDF View Canvas */}
       <View style={styles.pdfWrapper}>
         {isLoading && !loadError && (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#E50914" />
+          <View style={styles.translucentLoading}>
+            <ActivityIndicator size="small" color="#E50914" />
             <Text style={[styles.loadingText, theme === 'light' ? styles.darkText : styles.lightText]}>
-              Rendering Document...
+              Loading pages...
             </Text>
           </View>
         )}
@@ -153,41 +185,39 @@ export const PdfReaderScreen: React.FC = () => {
         {loadError ? (
           <View style={styles.errorContainer}>
             <Text style={styles.errorEmoji}>⚠️</Text>
-            <Text style={styles.errorTitle}>Could not render PDF</Text>
+            <Text style={styles.errorTitle}>Could not render with built-in viewer</Text>
             <Text style={styles.errorDesc}>{loadError}</Text>
-            <TouchableOpacity
-              style={styles.retryBtn}
-              onPress={() => {
-                setLoadError(null);
-                setIsLoading(true);
-              }}
-            >
-              <Text style={styles.retryBtnText}>Retry Loading</Text>
-            </TouchableOpacity>
+            <View style={styles.errorBtnRow}>
+              <TouchableOpacity style={styles.actionBtnSecondary} onPress={() => navigation.goBack()}>
+                <Text style={styles.actionBtnTextSec}>← Back</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.actionBtnPrimary} onPress={handleOpenExternal}>
+                <Text style={styles.actionBtnTextPri}>Open in External App</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         ) : (
           <Pdf
             ref={pdfRef}
-            source={{ uri: filePath, cache: true }}
+            source={{
+              uri: cleanUri,
+              cache: cleanUri.startsWith('http'),
+            }}
             page={initialPage}
             onLoadComplete={(numberOfPages) => {
-              setTotalPages(numberOfPages);
+              setTotalPages(numberOfPages || 1);
               setIsLoading(false);
             }}
             onPageChanged={handlePageChanged}
             onError={(error) => {
               console.warn('PDF Read Error:', error);
               setIsLoading(false);
-              setLoadError('The document could not be loaded. Check that the file exists and is a valid PDF.');
+              setLoadError('Unable to parse document. You can open it using an external PDF viewer.');
             }}
             onPageSingleTap={() => {
               setShowControls((prev) => !prev);
             }}
-            style={[
-              styles.pdf,
-              theme === 'dark' && styles.invertedPdf,
-              theme === 'sepia' && styles.sepiaPdf,
-            ]}
+            style={styles.pdf}
             enablePaging={true}
             horizontal={false}
             enableRTL={false}
@@ -196,7 +226,7 @@ export const PdfReaderScreen: React.FC = () => {
         )}
       </View>
 
-      {/* Mobbin-Inspired Bottom HUD & Scrubber */}
+      {/* 21st.dev-Inspired Bottom Glass Scrubber HUD */}
       {showControls && (
         <View
           style={[
@@ -221,7 +251,11 @@ export const PdfReaderScreen: React.FC = () => {
           <View style={styles.footerControls}>
             <TouchableOpacity
               disabled={currentPage <= 10}
-              onPress={() => pdfRef.current?.setPage(Math.max(1, currentPage - 10))}
+              onPress={() => {
+                const nextP = Math.max(1, currentPage - 10);
+                pdfRef.current?.setPage(nextP);
+                setCurrentPage(nextP);
+              }}
               style={[styles.stepBtn, currentPage <= 10 && styles.disabledBtn]}
             >
               <Text style={[styles.stepBtnText, theme === 'light' ? styles.darkText : styles.lightText]}>
@@ -231,7 +265,11 @@ export const PdfReaderScreen: React.FC = () => {
 
             <TouchableOpacity
               disabled={currentPage <= 1}
-              onPress={() => pdfRef.current?.setPage(Math.max(1, currentPage - 1))}
+              onPress={() => {
+                const nextP = Math.max(1, currentPage - 1);
+                pdfRef.current?.setPage(nextP);
+                setCurrentPage(nextP);
+              }}
               style={[styles.stepBtn, currentPage <= 1 && styles.disabledBtn]}
             >
               <Text style={[styles.stepBtnText, theme === 'light' ? styles.darkText : styles.lightText]}>
@@ -254,7 +292,11 @@ export const PdfReaderScreen: React.FC = () => {
 
             <TouchableOpacity
               disabled={currentPage >= totalPages}
-              onPress={() => pdfRef.current?.setPage(Math.min(totalPages, currentPage + 1))}
+              onPress={() => {
+                const nextP = Math.min(totalPages, currentPage + 1);
+                pdfRef.current?.setPage(nextP);
+                setCurrentPage(nextP);
+              }}
               style={[styles.stepBtn, currentPage >= totalPages && styles.disabledBtn]}
             >
               <Text style={[styles.stepBtnText, theme === 'light' ? styles.darkText : styles.lightText]}>
@@ -264,7 +306,11 @@ export const PdfReaderScreen: React.FC = () => {
 
             <TouchableOpacity
               disabled={currentPage + 10 > totalPages}
-              onPress={() => pdfRef.current?.setPage(Math.min(totalPages, currentPage + 10))}
+              onPress={() => {
+                const nextP = Math.min(totalPages, currentPage + 10);
+                pdfRef.current?.setPage(nextP);
+                setCurrentPage(nextP);
+              }}
               style={[styles.stepBtn, currentPage + 10 > totalPages && styles.disabledBtn]}
             >
               <Text style={[styles.stepBtnText, theme === 'light' ? styles.darkText : styles.lightText]}>
@@ -288,7 +334,7 @@ export const PdfReaderScreen: React.FC = () => {
               value={jumpInput}
               onChangeText={setJumpInput}
               placeholder="e.g. 42"
-              placeholderTextColor="#888"
+              placeholderTextColor="#71717A"
               style={styles.jumpModalInput}
               autoFocus
             />
@@ -310,23 +356,21 @@ export const PdfReaderScreen: React.FC = () => {
   );
 };
 
-const { width, height } = Dimensions.get('window');
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
   darkContainer: {
-    backgroundColor: '#0F0F0F',
+    backgroundColor: '#09090B',
   },
   sepiaContainer: {
     backgroundColor: '#F4ECD8',
   },
   lightContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FAFAFA',
   },
 
-  // Floating Bars
+  // 21st.dev Glass Bars
   floatingHeader: {
     position: 'absolute',
     top: 10,
@@ -338,11 +382,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 10,
-    borderRadius: 16,
+    borderRadius: 18,
     shadowColor: '#000',
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    elevation: 8,
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 10,
   },
   floatingFooter: {
     position: 'absolute',
@@ -352,33 +396,33 @@ const styles = StyleSheet.create({
     zIndex: 20,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    borderRadius: 16,
+    borderRadius: 18,
     shadowColor: '#000',
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    elevation: 8,
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 10,
   },
   darkBar: {
-    backgroundColor: 'rgba(28, 28, 30, 0.95)',
+    backgroundColor: 'rgba(18, 18, 21, 0.92)',
     borderWidth: 1,
-    borderColor: '#3A3A3C',
+    borderColor: '#27272A',
   },
   sepiaBar: {
-    backgroundColor: 'rgba(240, 230, 210, 0.96)',
+    backgroundColor: 'rgba(244, 236, 216, 0.94)',
     borderWidth: 1,
     borderColor: '#D4C4A8',
   },
   lightBar: {
-    backgroundColor: 'rgba(255, 255, 255, 0.96)',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderWidth: 1,
-    borderColor: '#E5E5EA',
+    borderColor: '#E4E4E7',
   },
 
-  iconBtn: {
+  closeBtn: {
     padding: 6,
   },
-  backText: {
-    fontSize: 20,
+  closeIcon: {
+    fontSize: 18,
     fontWeight: 'bold',
   },
   titleContainer: {
@@ -388,18 +432,18 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   headerSubtitle: {
     fontSize: 11,
-    color: '#8E8E93',
+    color: '#71717A',
     marginTop: 2,
   },
   darkText: {
-    color: '#1C1C1E',
+    color: '#18181B',
   },
   lightText: {
-    color: '#FFFFFF',
+    color: '#FAFAFA',
   },
 
   themeGroup: {
@@ -409,43 +453,45 @@ const styles = StyleSheet.create({
   themeChip: {
     padding: 6,
     borderRadius: 8,
-    backgroundColor: 'rgba(128, 128, 128, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
   },
   activeChip: {
     backgroundColor: '#E50914',
   },
   themeIcon: {
-    fontSize: 14,
+    fontSize: 13,
   },
 
   pdfWrapper: {
     flex: 1,
-    width,
-    height,
+    width: '100%',
+    height: '100%',
   },
   pdf: {
     flex: 1,
-    width,
-    height,
-    backgroundColor: '#FFFFFF',
-  },
-  invertedPdf: {
-    backgroundColor: '#0F0F0F',
-  },
-  sepiaPdf: {
-    backgroundColor: '#F4ECD8',
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#09090B',
   },
 
-  loadingContainer: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: 'center',
+  translucentLoading: {
+    position: 'absolute',
+    top: 60,
+    alignSelf: 'center',
+    zIndex: 10,
+    flexDirection: 'row',
     alignItems: 'center',
-    zIndex: 5,
-    backgroundColor: '#0F0F0F',
+    gap: 8,
+    backgroundColor: 'rgba(18, 18, 21, 0.85)',
+    borderWidth: 1,
+    borderColor: '#27272A',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
   },
   loadingText: {
-    marginTop: 12,
-    fontSize: 14,
+    fontSize: 12,
+    fontWeight: '500',
   },
 
   errorContainer: {
@@ -455,36 +501,54 @@ const styles = StyleSheet.create({
     padding: 30,
   },
   errorEmoji: {
-    fontSize: 50,
+    fontSize: 48,
     marginBottom: 12,
   },
   errorTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: 'bold',
-    color: '#FFF',
+    color: '#FAFAFA',
     marginBottom: 6,
+    textAlign: 'center',
   },
   errorDesc: {
     fontSize: 13,
-    color: '#AAA',
+    color: '#A1A1AA',
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
+    lineHeight: 18,
   },
-  retryBtn: {
-    backgroundColor: '#E50914',
-    paddingHorizontal: 20,
+  errorBtnRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  actionBtnSecondary: {
+    backgroundColor: '#27272A',
+    paddingHorizontal: 16,
     paddingVertical: 10,
-    borderRadius: 8,
+    borderRadius: 10,
   },
-  retryBtnText: {
-    color: '#FFF',
+  actionBtnTextSec: {
+    color: '#FAFAFA',
+    fontWeight: '600',
+    fontSize: 13,
+  },
+  actionBtnPrimary: {
+    backgroundColor: '#E50914',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  actionBtnTextPri: {
+    color: '#FAFAFA',
     fontWeight: 'bold',
+    fontSize: 13,
   },
 
   // Footer & Scrubber
   progressBarTrack: {
     height: 4,
-    backgroundColor: 'rgba(128, 128, 128, 0.3)',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 2,
     overflow: 'hidden',
     marginBottom: 10,
@@ -501,10 +565,10 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 10,
     borderRadius: 8,
-    backgroundColor: 'rgba(128, 128, 128, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
   },
   disabledBtn: {
-    opacity: 0.3,
+    opacity: 0.25,
   },
   stepBtnText: {
     fontSize: 12,
@@ -514,7 +578,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 12,
-    backgroundColor: 'rgba(128, 128, 128, 0.15)',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
   },
   pageInfoText: {
     fontSize: 12,
@@ -524,39 +588,41 @@ const styles = StyleSheet.create({
   // Jump Modal
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: 'rgba(0,0,0,0.75)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
   },
   jumpModalCard: {
     width: '100%',
-    backgroundColor: '#1E1E1E',
-    borderRadius: 16,
-    padding: 20,
+    backgroundColor: '#18181B',
+    borderRadius: 20,
+    padding: 22,
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: '#27272A',
   },
   jumpModalTitle: {
-    color: '#FFF',
+    color: '#FAFAFA',
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 4,
   },
   jumpModalSubtitle: {
-    color: '#8E8E93',
+    color: '#71717A',
     fontSize: 13,
     marginBottom: 16,
   },
   jumpModalInput: {
-    backgroundColor: '#2A2A2A',
-    color: '#FFF',
-    borderRadius: 10,
+    backgroundColor: '#09090B',
+    color: '#FAFAFA',
+    borderRadius: 12,
     paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingVertical: 12,
     fontSize: 16,
     marginBottom: 16,
     textAlign: 'center',
+    borderWidth: 1,
+    borderColor: '#27272A',
   },
   jumpModalButtons: {
     flexDirection: 'row',
@@ -565,21 +631,21 @@ const styles = StyleSheet.create({
   jumpBtn: {
     flex: 1,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 10,
     alignItems: 'center',
   },
   jumpCancelBtn: {
-    backgroundColor: '#333',
+    backgroundColor: '#27272A',
   },
   jumpCancelText: {
-    color: '#AAA',
+    color: '#A1A1AA',
     fontWeight: '600',
   },
   jumpConfirmBtn: {
     backgroundColor: '#E50914',
   },
   jumpConfirmText: {
-    color: '#FFF',
+    color: '#FAFAFA',
     fontWeight: 'bold',
   },
 });

@@ -40,8 +40,8 @@ function BottomTabs() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: styles.tabBar,
-        tabBarActiveTintColor: '#E50914',
-        tabBarInactiveTintColor: '#888888',
+        tabBarActiveTintColor: '#FAFAFA',
+        tabBarInactiveTintColor: '#71717A',
       }}
     >
       <Tab.Screen
@@ -78,7 +78,7 @@ export const AppNavigator: React.FC = () => {
       <Stack.Navigator
         screenOptions={{
           headerShown: false,
-          contentStyle: { backgroundColor: '#121212' },
+          contentStyle: { backgroundColor: '#09090B' },
         }}
       >
         <Stack.Screen name="MainTabs" component={BottomTabs} />
@@ -88,8 +88,9 @@ export const AppNavigator: React.FC = () => {
           options={{
             headerShown: true,
             headerTitle: 'Book Details',
-            headerStyle: { backgroundColor: '#1A1A1A' },
-            headerTintColor: '#FFFFFF',
+            headerStyle: { backgroundColor: '#09090B' },
+            headerTintColor: '#FAFAFA',
+            headerShadowVisible: false,
           }}
         />
         <Stack.Screen
@@ -107,16 +108,16 @@ export const AppNavigator: React.FC = () => {
 
 const styles = StyleSheet.create({
   tabBar: {
-    backgroundColor: '#181818',
-    borderTopColor: '#252525',
+    backgroundColor: '#09090B',
+    borderTopColor: '#27272A',
     borderTopWidth: 1,
-    height: 60,
+    height: 62,
     paddingBottom: 8,
     paddingTop: 6,
   },
   tabIcon: {
     fontSize: 18,
-    opacity: 0.6,
+    opacity: 0.5,
   },
   focusedTabIcon: {
     opacity: 1,

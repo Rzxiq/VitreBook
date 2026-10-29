@@ -17,7 +17,7 @@ import { DownloadedBook } from '../types/book';
 import { DownloadManager } from '../services/downloadManager';
 
 const SAMPLE_PDF_URL =
-  'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf';
+  'https://raw.githubusercontent.com/mozilla/pdf.js/master/web/compressed.tracemonkey-pldi-09.pdf';
 
 export const LibraryScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -40,7 +40,7 @@ export const LibraryScreen: React.FC = () => {
       const { dirs } = ReactNativeBlobUtil.fs;
       const targetPath = `${dirs.DocumentDir}/VitreBook_Starter_Guide.pdf`;
 
-      // Download sample PDF
+      // Download verified sample PDF
       const res = await ReactNativeBlobUtil.config({
         path: targetPath,
         fileCache: true,
@@ -48,18 +48,20 @@ export const LibraryScreen: React.FC = () => {
 
       const filePath = res.path();
       const stat = await ReactNativeBlobUtil.fs.stat(filePath);
+      const cleanUri = filePath.startsWith('file://') ? filePath : `file://${filePath}`;
 
       const sampleBook: DownloadedBook = {
         id: 'sample-book-001',
         md5: '7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a',
-        title: 'VitreBook Starter Guide (Sample)',
-        author: 'VitreBook Open Source Project',
-        localFilePath: filePath,
+        title: 'VitreBook Starter Guide (Sample PDF)',
+        author: 'VitreBook Project',
+        localFilePath: cleanUri,
         fileSize: Number(stat.size) || 13264,
         extension: 'pdf',
         downloadedAt: Date.now(),
-        totalPages: 2,
+        totalPages: 1,
         lastReadPage: 1,
+        source: 'Curated',
       };
 
       addBook(sampleBook);
@@ -79,7 +81,7 @@ export const LibraryScreen: React.FC = () => {
   const handleDeleteBook = (book: DownloadedBook) => {
     Alert.alert(
       'Delete Book',
-      `Are you sure you want to delete "${book.title}" from local storage?`,
+      `Remove "${book.title}" from local device storage?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -100,7 +102,7 @@ export const LibraryScreen: React.FC = () => {
     return (
       <TouchableOpacity
         style={styles.card}
-        activeOpacity={0.7}
+        activeOpacity={0.75}
         onPress={() => handleOpenBook(item)}
         onLongPress={() => handleDeleteBook(item)}
       >
@@ -113,7 +115,7 @@ export const LibraryScreen: React.FC = () => {
             </View>
           )}
 
-          {/* Reading progress bar */}
+          {/* Reading progress indicator */}
           <View style={styles.progressBarBg}>
             <View style={[styles.progressBarFill, { width: `${progressPercent}%` }]} />
           </View>
@@ -142,29 +144,31 @@ export const LibraryScreen: React.FC = () => {
       <View style={styles.header}>
         <View>
           <Text style={styles.headerTitle}>My Library</Text>
-          <Text style={styles.countBadge}>{bookList.length} offline books</Text>
+          <Text style={styles.countBadge}>{bookList.length} downloaded for offline reading</Text>
         </View>
 
-        {/* Quick Test Sample Button */}
+        {/* 21st.dev Test Reader Pill */}
         <TouchableOpacity
           style={styles.sampleHeaderBtn}
           onPress={handleLoadSampleBook}
           disabled={loadingSample}
         >
           {loadingSample ? (
-            <ActivityIndicator size="small" color="#FFF" />
+            <ActivityIndicator size="small" color="#FAFAFA" />
           ) : (
-            <Text style={styles.sampleHeaderBtnText}>⚡ Test Sample Book</Text>
+            <Text style={styles.sampleHeaderBtnText}>⚡ Test Reader</Text>
           )}
         </TouchableOpacity>
       </View>
 
       {bookList.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyIcon}>📂</Text>
-          <Text style={styles.emptyTitle}>Your library is empty</Text>
+          <View style={styles.emptyIconContainer}>
+            <Text style={styles.emptyIcon}>📚</Text>
+          </View>
+          <Text style={styles.emptyTitle}>Your Library is Empty</Text>
           <Text style={styles.emptySubtitle}>
-            Test the built-in PDF reader instantly with a verified sample book, or search public catalogs.
+            Download books from the Explore tab for offline reading, or test the built-in reader instantly with a verified sample.
           </Text>
 
           <TouchableOpacity
@@ -173,7 +177,7 @@ export const LibraryScreen: React.FC = () => {
             disabled={loadingSample}
           >
             {loadingSample ? (
-              <ActivityIndicator color="#FFF" />
+              <ActivityIndicator color="#09090B" />
             ) : (
               <Text style={styles.sampleActionText}>⚡ Load Sample Book (Test Reader)</Text>
             )}
@@ -183,7 +187,7 @@ export const LibraryScreen: React.FC = () => {
             style={styles.exploreBtn}
             onPress={() => navigation.navigate('SearchTab')}
           >
-            <Text style={styles.exploreBtnText}>🔍 Explore Catalog</Text>
+            <Text style={styles.exploreBtnText}>🔍 Browse Catalog</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -202,7 +206,7 @@ export const LibraryScreen: React.FC = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#121212',
+    backgroundColor: '#09090B',
   },
   header: {
     flexDirection: 'row',
@@ -211,26 +215,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#222',
+    borderBottomColor: '#27272A',
   },
   headerTitle: {
-    color: '#FFF',
+    color: '#FAFAFA',
     fontSize: 22,
-    fontWeight: 'bold',
+    fontWeight: '800',
   },
   countBadge: {
-    color: '#888',
+    color: '#71717A',
     fontSize: 12,
     marginTop: 2,
   },
   sampleHeaderBtn: {
-    backgroundColor: '#2E7D32',
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    borderWidth: 1,
+    borderColor: '#10B981',
     paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 8,
+    paddingVertical: 6,
+    borderRadius: 20,
   },
   sampleHeaderBtnText: {
-    color: '#FFF',
+    color: '#10B981',
     fontSize: 12,
     fontWeight: 'bold',
   },
@@ -239,21 +245,23 @@ const styles = StyleSheet.create({
   },
   card: {
     flex: 0.5,
-    backgroundColor: '#1E1E1E',
-    borderRadius: 12,
+    backgroundColor: '#121215',
+    borderRadius: 16,
     margin: 6,
     padding: 10,
     borderWidth: 1,
-    borderColor: '#2A2A2A',
+    borderColor: '#27272A',
   },
   coverWrapper: {
     width: '100%',
     height: 180,
-    borderRadius: 8,
+    borderRadius: 10,
     overflow: 'hidden',
-    backgroundColor: '#262626',
+    backgroundColor: '#18181B',
     position: 'relative',
     marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#27272A',
   },
   coverImage: {
     width: '100%',
@@ -265,7 +273,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   placeholderIcon: {
-    fontSize: 40,
+    fontSize: 36,
   },
   progressBarBg: {
     position: 'absolute',
@@ -273,22 +281,22 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 4,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: '#00E676',
+    backgroundColor: '#10B981',
   },
   title: {
-    color: '#FFF',
-    fontSize: 14,
+    color: '#FAFAFA',
+    fontSize: 13,
     fontWeight: '600',
-    lineHeight: 18,
+    lineHeight: 17,
     marginBottom: 2,
   },
   author: {
-    color: '#8E8E93',
-    fontSize: 12,
+    color: '#A1A1AA',
+    fontSize: 11,
     marginBottom: 6,
   },
   progressRow: {
@@ -297,12 +305,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   pageText: {
-    color: '#AAA',
-    fontSize: 11,
+    color: '#71717A',
+    fontSize: 10,
   },
   percentText: {
-    color: '#00E676',
-    fontSize: 11,
+    color: '#10B981',
+    fontSize: 10,
     fontWeight: 'bold',
   },
   emptyContainer: {
@@ -311,48 +319,60 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 30,
   },
-  emptyIcon: {
-    fontSize: 60,
+  emptyIconContainer: {
+    width: 72,
+    height: 72,
+    borderRadius: 20,
+    backgroundColor: '#121215',
+    borderWidth: 1,
+    borderColor: '#27272A',
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 16,
   },
+  emptyIcon: {
+    fontSize: 32,
+  },
   emptyTitle: {
-    color: '#FFF',
+    color: '#FAFAFA',
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   emptySubtitle: {
-    color: '#777',
-    fontSize: 14,
+    color: '#71717A',
+    fontSize: 13,
     textAlign: 'center',
     marginBottom: 24,
-    lineHeight: 20,
+    lineHeight: 18,
   },
   sampleActionBtn: {
-    backgroundColor: '#2E7D32',
+    backgroundColor: '#FAFAFA',
     paddingHorizontal: 22,
     paddingVertical: 13,
-    borderRadius: 10,
-    marginBottom: 12,
+    borderRadius: 12,
+    marginBottom: 10,
     width: '100%',
     alignItems: 'center',
   },
   sampleActionText: {
-    color: '#FFF',
-    fontSize: 15,
+    color: '#09090B',
+    fontSize: 14,
     fontWeight: 'bold',
   },
   exploreBtn: {
-    backgroundColor: '#2A2A2A',
+    backgroundColor: '#121215',
+    borderWidth: 1,
+    borderColor: '#27272A',
     paddingHorizontal: 20,
     paddingVertical: 12,
-    borderRadius: 10,
+    borderRadius: 12,
     width: '100%',
     alignItems: 'center',
   },
   exploreBtnText: {
-    color: '#FFF',
+    color: '#A1A1AA',
     fontWeight: '600',
-    fontSize: 14,
+    fontSize: 13,
   },
 });
