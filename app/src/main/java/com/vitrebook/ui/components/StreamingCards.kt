@@ -204,7 +204,7 @@ fun HeroBillboard(
             year = "Recent",
             pages = activeReadingBook.totalPages.toString(),
             language = "English",
-            size = "${activeReadingBook.fileSizeBytes / (1024 * 1024)} MB",
+            size = "${activeReadingBook.fileSize / (1024 * 1024)} MB",
             extension = "pdf",
             coverUrl = activeReadingBook.coverUrl,
             md5 = activeReadingBook.id,
@@ -216,10 +216,10 @@ fun HeroBillboard(
         featuredBook
     }
 
-    val progressFraction = if (activeReadingBook != null && activeReadingBook.totalPages > 0) {
-        activeReadingBook.lastPageRead.toFloat() / activeReadingBook.totalPages.toFloat()
+    val progressFraction: Float = if (activeReadingBook != null && activeReadingBook.totalPages > 0) {
+        activeReadingBook.lastReadPage.toFloat() / activeReadingBook.totalPages.toFloat()
     } else {
-        null
+        0f
     }
 
     Box(
@@ -339,7 +339,7 @@ fun HeroBillboard(
             }
 
             // Progress bar if in progress
-            if (progressFraction != null && progressFraction > 0f) {
+            if (progressFraction > 0f) {
                 Spacer(modifier = Modifier.height(10.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -356,7 +356,7 @@ fun HeroBillboard(
                         trackColor = Color(0xFF27272A)
                     )
                     Text(
-                        text = "Page ${activeReadingBook?.lastPageRead} of ${activeReadingBook?.totalPages}",
+                        text = "Page ${activeReadingBook?.lastReadPage} of ${activeReadingBook?.totalPages}",
                         color = TextMuted,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold

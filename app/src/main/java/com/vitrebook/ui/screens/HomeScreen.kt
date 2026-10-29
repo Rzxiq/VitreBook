@@ -57,7 +57,7 @@ fun HomeScreen(
                             year = "Recent",
                             pages = activeBook.totalPages.toString(),
                             language = "English",
-                            size = "${activeBook.fileSizeBytes / (1024 * 1024)} MB",
+                            size = "${activeBook.fileSize / (1024 * 1024)} MB",
                             extension = "pdf",
                             coverUrl = activeBook.coverUrl,
                             md5 = activeBook.id,
@@ -85,7 +85,7 @@ fun HomeScreen(
                 ) {
                     items(downloadedBooks) { downloaded ->
                         val progress = if (downloaded.totalPages > 0) {
-                            downloaded.lastPageRead.toFloat() / downloaded.totalPages.toFloat()
+                            downloaded.lastReadPage.toFloat() / downloaded.totalPages.toFloat()
                         } else null
 
                         val bookItem = Book(
@@ -96,7 +96,7 @@ fun HomeScreen(
                             year = "Downloaded",
                             pages = downloaded.totalPages.toString(),
                             language = "English",
-                            size = "${downloaded.fileSizeBytes / (1024 * 1024)} MB",
+                            size = "${downloaded.fileSize / (1024 * 1024)} MB",
                             extension = "pdf",
                             coverUrl = downloaded.coverUrl,
                             md5 = downloaded.id,

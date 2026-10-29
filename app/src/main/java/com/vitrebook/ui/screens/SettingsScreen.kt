@@ -80,8 +80,8 @@ fun SettingsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column {
-                            Text(text = "Open Library", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                            Text(text = "Millions of editions with high-res cover art", color = TextMuted, fontSize = 12.sp)
+                            Text(text = "Libgen.la & Direct Archive", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                            Text(text = "Millions of verified direct full-length PDF books", color = TextMuted, fontSize = 12.sp)
                         }
                         Surface(
                             shape = RoundedCornerShape(6.dp),
@@ -182,7 +182,7 @@ fun SettingsScreen(
                     )
 
                     Text(
-                        text = "Version 2.2.0 (Streaming Cinema Edition • Material 3)",
+                        text = "Version 2.2.1 (Direct PDF Cinema Edition • Material 3)",
                         color = TextMuted,
                         fontSize = 12.sp
                     )

@@ -1,7 +1,5 @@
 package com.vitrebook.data.network
 
-import com.google.gson.Gson
-import com.google.gson.JsonObject
 import com.vitrebook.data.model.Book
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -21,9 +19,8 @@ object SearchEngine {
         .build()
 
     const val USER_AGENT = "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36"
-    private const val SAMPLE_PDF = "https://raw.githubusercontent.com/mozilla/pdf.js/master/web/compressed.tracemonkey-pldi-09.pdf"
 
-    val FEATURED_CLASSICS = listOf(
+    val FEATURED_CLASSICS: List<Book> = listOf(
         Book(
             id = "feat_pride",
             title = "Pride and Prejudice",
@@ -32,13 +29,13 @@ object SearchEngine {
             year = "1813",
             pages = "432",
             language = "English",
-            size = "1.4 MB",
+            size = "1.5 MB",
             extension = "pdf",
             coverUrl = "https://www.gutenberg.org/cache/epub/1342/pg1342.cover.medium.jpg",
             md5 = "pride_and_prejudice_austen_1813",
-            source = "Project Gutenberg",
+            source = "Direct PDF Archive",
             description = "A romantic novel of manners following Elizabeth Bennet as she learns the repercussion of hasty judgments.",
-            downloadUrl = SAMPLE_PDF
+            downloadUrl = "https://www.planetpublish.com/wp-content/uploads/2011/11/Pride_and_Prejudice_NT.pdf"
         ),
         Book(
             id = "feat_frankenstein",
@@ -48,13 +45,13 @@ object SearchEngine {
             year = "1818",
             pages = "280",
             language = "English",
-            size = "1.2 MB",
+            size = "880 KB",
             extension = "pdf",
             coverUrl = "https://www.gutenberg.org/cache/epub/84/pg84.cover.medium.jpg",
             md5 = "frankenstein_shelley_1818",
-            source = "Project Gutenberg",
+            source = "Direct PDF Archive",
             description = "Victor Frankenstein creates a sapient creature in an unorthodox scientific experiment.",
-            downloadUrl = SAMPLE_PDF
+            downloadUrl = "https://www.planetpublish.com/wp-content/uploads/2011/11/Frankenstein_NT.pdf"
         ),
         Book(
             id = "feat_dracula",
@@ -64,61 +61,61 @@ object SearchEngine {
             year = "1897",
             pages = "418",
             language = "English",
-            size = "1.9 MB",
+            size = "1.7 MB",
             extension = "pdf",
             coverUrl = "https://www.gutenberg.org/cache/epub/345/pg345.cover.medium.jpg",
             md5 = "dracula_stoker_1897",
-            source = "Project Gutenberg",
+            source = "Direct PDF Archive",
             description = "The quintessential Gothic vampire novel introducing Count Dracula's attempt to move from Transylvania to England.",
-            downloadUrl = SAMPLE_PDF
+            downloadUrl = "https://www.planetpublish.com/wp-content/uploads/2011/11/Dracula_NT.pdf"
         ),
         Book(
             id = "feat_sherlock",
-            title = "The Adventures of Sherlock Holmes",
+            title = "The Hound of the Baskervilles",
             author = "Arthur Conan Doyle",
             publisher = "George Newnes",
-            year = "1892",
-            pages = "307",
+            year = "1902",
+            pages = "256",
             language = "English",
-            size = "1.3 MB",
+            size = "740 KB",
             extension = "pdf",
-            coverUrl = "https://www.gutenberg.org/cache/epub/1661/pg1661.cover.medium.jpg",
-            md5 = "sherlock_holmes_doyle_1892",
-            source = "Project Gutenberg",
-            description = "Twelve short detective mysteries featuring Sherlock Holmes and Dr. Watson.",
-            downloadUrl = SAMPLE_PDF
+            coverUrl = "https://www.gutenberg.org/cache/epub/2852/pg2852.cover.medium.jpg",
+            md5 = "hound_baskervilles_doyle_1902",
+            source = "Direct PDF Archive",
+            description = "Sherlock Holmes and Dr. Watson investigate the legend of a terrifying, diabolical hound haunting Dartmoor.",
+            downloadUrl = "https://www.planetpublish.com/wp-content/uploads/2011/11/The_Hound_of_the_Baskervilles_NT.pdf"
         ),
         Book(
-            id = "feat_alice",
-            title = "Alice's Adventures in Wonderland",
-            author = "Lewis Carroll",
-            publisher = "Macmillan",
-            year = "1865",
-            pages = "192",
+            id = "feat_dorian",
+            title = "The Picture of Dorian Gray",
+            author = "Oscar Wilde",
+            publisher = "Ward, Lock and Company",
+            year = "1890",
+            pages = "250",
             language = "English",
-            size = "1.1 MB",
+            size = "640 KB",
             extension = "pdf",
-            coverUrl = "https://covers.openlibrary.org/b/id/8725842-M.jpg",
-            md5 = "alice_wonderland_carroll_1865",
-            source = "Open Library",
-            description = "A young girl named Alice falls through a rabbit hole into a fantasy realm populated by peculiar anthropomorphic creatures.",
-            downloadUrl = SAMPLE_PDF
+            coverUrl = "https://www.gutenberg.org/cache/epub/174/pg174.cover.medium.jpg",
+            md5 = "dorian_gray_wilde_1890",
+            source = "Direct PDF Archive",
+            description = "A philosophical novel of aestheticism, moral duplicity, and a supernatural portrait that ages in place of its owner.",
+            downloadUrl = "https://www.planetpublish.com/wp-content/uploads/2011/11/The_Picture_of_Dorian_Gray_NT.pdf"
         ),
         Book(
-            id = "feat_artofwar",
-            title = "The Art of War",
-            author = "Sun Tzu",
-            publisher = "Lionel Giles Translation",
-            year = "5th C. BC",
-            pages = "112",
+            id = "feat_prince",
+            title = "The Prince",
+            author = "Niccolò Machiavelli",
+            publisher = "Antonio Blado d'Asola",
+            year = "1532",
+            pages = "140",
             language = "English",
-            size = "850 KB",
+            size = "620 KB",
             extension = "pdf",
-            coverUrl = "https://www.gutenberg.org/cache/epub/132/pg132.cover.medium.jpg",
-            md5 = "art_of_war_suntzu",
-            source = "Project Gutenberg",
-            description = "An ancient Chinese military treatise devoted to aspects of warfare and strategic decision making.",
-            downloadUrl = SAMPLE_PDF
+            coverUrl = "https://www.gutenberg.org/cache/epub/1232/pg1232.cover.medium.jpg",
+            md5 = "the_prince_machiavelli_1532",
+            source = "Direct PDF Archive",
+            description = "A practical treatise on statecraft, political realism, and acquiring power in renaissance Italy.",
+            downloadUrl = "https://www.planetpublish.com/wp-content/uploads/2011/11/The_Prince_NT.pdf"
         )
     )
 
@@ -133,49 +130,32 @@ object SearchEngine {
             year = "1895",
             pages = "118",
             language = "English",
-            size = "950 KB",
+            size = "410 KB",
             extension = "pdf",
             coverUrl = "https://www.gutenberg.org/cache/epub/35/pg35.cover.medium.jpg",
             md5 = "time_machine_wells_1895",
-            source = "Project Gutenberg",
+            source = "Direct PDF Archive",
             description = "A Victorian scientist travels into the far future year 802,701 AD to discover humanity divided into Eloi and Morlocks.",
-            downloadUrl = SAMPLE_PDF
+            downloadUrl = "https://www.planetpublish.com/wp-content/uploads/2011/11/The_Time_Machine_NT.pdf"
         ),
         FEATURED_CLASSICS[2], // Dracula
         Book(
-            id = "top_meditations",
-            title = "Meditations",
-            author = "Marcus Aurelius",
-            publisher = "George Long Translation",
-            year = "180 AD",
-            pages = "180",
+            id = "top_crime_punish",
+            title = "Crime and Punishment",
+            author = "Fyodor Dostoevsky",
+            publisher = "The Russian Messenger",
+            year = "1866",
+            pages = "545",
             language = "English",
-            size = "1.1 MB",
+            size = "2.4 MB",
             extension = "pdf",
-            coverUrl = "https://www.gutenberg.org/cache/epub/2680/pg2680.cover.medium.jpg",
-            md5 = "meditations_aurelius",
-            source = "Project Gutenberg",
-            description = "Personal philosophical writings of Roman Emperor Marcus Aurelius on Stoic philosophy and cosmic duty.",
-            downloadUrl = SAMPLE_PDF
+            coverUrl = "https://www.gutenberg.org/cache/epub/2554/pg2554.cover.medium.jpg",
+            md5 = "crime_punishment_dostoevsky",
+            source = "Direct PDF Archive",
+            description = "A destitute former student in Saint Petersburg struggles with moral torment and guilt after committing murder.",
+            downloadUrl = "https://www.planetpublish.com/wp-content/uploads/2011/11/Crime_and_Punishment_NT.pdf"
         ),
-        FEATURED_CLASSICS[3], // Sherlock Holmes
-        Book(
-            id = "top_republic",
-            title = "The Republic",
-            author = "Plato",
-            publisher = "Benjamin Jowett Translation",
-            year = "375 BC",
-            pages = "416",
-            language = "English",
-            size = "2.1 MB",
-            extension = "pdf",
-            coverUrl = "https://www.gutenberg.org/cache/epub/1497/pg1497.cover.medium.jpg",
-            md5 = "the_republic_plato",
-            source = "Project Gutenberg",
-            description = "A Socratic dialogue concerning justice, the order of the just city-state, and the nature of the philosopher king.",
-            downloadUrl = SAMPLE_PDF
-        ),
-        FEATURED_CLASSICS[5], // The Art of War
+        FEATURED_CLASSICS[3], // The Hound of the Baskervilles
         Book(
             id = "top_warworlds",
             title = "The War of the Worlds",
@@ -184,129 +164,181 @@ object SearchEngine {
             year = "1898",
             pages = "288",
             language = "English",
-            size = "1.5 MB",
+            size = "720 KB",
             extension = "pdf",
             coverUrl = "https://www.gutenberg.org/cache/epub/36/pg36.cover.medium.jpg",
             md5 = "war_of_the_worlds_wells",
-            source = "Project Gutenberg",
-            description = "One of the earliest stories that detail a conflict between mankind and an extraterrestrial race from Mars.",
-            downloadUrl = SAMPLE_PDF
+            source = "Direct PDF Archive",
+            description = "One of the earliest stories detailing a cataclysmic conflict between mankind and an extraterrestrial race from Mars.",
+            downloadUrl = "https://www.planetpublish.com/wp-content/uploads/2011/11/The_War_of_the_Worlds_NT.pdf"
         ),
-        FEATURED_CLASSICS[4] // Alice in Wonderland
+        FEATURED_CLASSICS[5], // The Prince
+        Book(
+            id = "top_mobydick",
+            title = "Moby Dick; or, The Whale",
+            author = "Herman Melville",
+            publisher = "Harper & Brothers",
+            year = "1851",
+            pages = "635",
+            language = "English",
+            size = "2.6 MB",
+            extension = "pdf",
+            coverUrl = "https://www.gutenberg.org/cache/epub/2701/pg2701.cover.medium.jpg",
+            md5 = "moby_dick_melville_1851",
+            source = "Direct PDF Archive",
+            description = "The sailor Ishmael narrates the obsessive quest of Captain Ahab for revenge against the giant white sperm whale Moby Dick.",
+            downloadUrl = "https://www.planetpublish.com/wp-content/uploads/2011/11/Moby_Dick_NT.pdf"
+        ),
+        FEATURED_CLASSICS[4] // The Picture of Dorian Gray
     )
 
     val SCIFI_SHELF: List<Book> = listOf(
         FEATURED_CLASSICS[1], // Frankenstein
         TOP_10_TODAY[2], // The Time Machine
-        TOP_10_TODAY[8], // The War of the Worlds
+        TOP_10_TODAY[6], // The War of the Worlds
         Book(
-            id = "scifi_center_earth",
-            title = "A Journey to the Centre of the Earth",
-            author = "Jules Verne",
-            publisher = "Pierre-Jules Hetzel",
-            year = "1864",
-            pages = "254",
+            id = "scifi_two_cities",
+            title = "A Tale of Two Cities",
+            author = "Charles Dickens",
+            publisher = "Chapman & Hall",
+            year = "1859",
+            pages = "448",
             language = "English",
-            size = "1.3 MB",
+            size = "1.5 MB",
             extension = "pdf",
-            coverUrl = "https://www.gutenberg.org/cache/epub/18857/pg18857.cover.medium.jpg",
-            md5 = "journey_center_earth_verne",
-            source = "Project Gutenberg",
-            description = "Professor Otto Lidenbrock leads an expedition into a volcanic crater descending into the center of the earth.",
-            downloadUrl = SAMPLE_PDF
+            coverUrl = "https://www.gutenberg.org/cache/epub/98/pg98.cover.medium.jpg",
+            md5 = "tale_two_cities_dickens",
+            source = "Direct PDF Archive",
+            description = "Set in London and Paris before and during the French Revolution, exploring self-sacrifice, rebirth, and tyranny.",
+            downloadUrl = "https://www.planetpublish.com/wp-content/uploads/2011/11/A_Tale_of_Two_Cities_NT.pdf"
         ),
         Book(
-            id = "scifi_20000_leagues",
-            title = "Twenty Thousand Leagues Under the Sea",
-            author = "Jules Verne",
-            publisher = "Pierre-Jules Hetzel",
-            year = "1870",
-            pages = "390",
+            id = "scifi_expectations",
+            title = "Great Expectations",
+            author = "Charles Dickens",
+            publisher = "Chapman & Hall",
+            year = "1861",
+            pages = "505",
             language = "English",
-            size = "1.8 MB",
+            size = "2.1 MB",
             extension = "pdf",
-            coverUrl = "https://www.gutenberg.org/cache/epub/164/pg164.cover.medium.jpg",
-            md5 = "twenty_thousand_leagues_verne",
-            source = "Project Gutenberg",
-            description = "Captain Nemo and his submarine Nautilus explore the wonder and depths of the world's oceans.",
-            downloadUrl = SAMPLE_PDF
+            coverUrl = "https://www.gutenberg.org/cache/epub/1400/pg1400.cover.medium.jpg",
+            md5 = "great_expectations_dickens",
+            source = "Direct PDF Archive",
+            description = "The bildungsroman of orphan Pip as he navigates wealth, unrequited love for Estella, and secret benefactors.",
+            downloadUrl = "https://www.planetpublish.com/wp-content/uploads/2011/11/Great_Expectations_NT.pdf"
         )
     )
 
     val PHILOSOPHY_SHELF: List<Book> = listOf(
-        TOP_10_TODAY[4], // Meditations
-        TOP_10_TODAY[6], // The Republic
-        FEATURED_CLASSICS[5], // The Art of War
+        FEATURED_CLASSICS[5], // The Prince
+        TOP_10_TODAY[4], // Crime and Punishment
         Book(
-            id = "phil_prince",
-            title = "The Prince",
-            author = "Niccolò Machiavelli",
-            publisher = "W. K. Marriott Translation",
-            year = "1532",
-            pages = "140",
+            id = "phil_odyssey",
+            title = "The Odyssey",
+            author = "Homer",
+            publisher = "Samuel Butler Translation",
+            year = "8th C. BC",
+            pages = "384",
             language = "English",
-            size = "920 KB",
+            size = "1.4 MB",
             extension = "pdf",
-            coverUrl = "https://www.gutenberg.org/cache/epub/1232/pg1232.cover.medium.jpg",
-            md5 = "the_prince_machiavelli",
-            source = "Project Gutenberg",
-            description = "A political treatise on how princely rulers should acquire, retain, and exert practical political power.",
-            downloadUrl = SAMPLE_PDF
+            coverUrl = "https://www.gutenberg.org/cache/epub/1727/pg1727.cover.medium.jpg",
+            md5 = "the_odyssey_homer",
+            source = "Direct PDF Archive",
+            description = "The epic Greek journey of Odysseus, king of Ithaca, wandering home after the fall of Troy.",
+            downloadUrl = "https://www.planetpublish.com/wp-content/uploads/2011/11/The_Odyssey_NT.pdf"
         ),
         Book(
-            id = "phil_beyond_good",
-            title = "Beyond Good and Evil",
-            author = "Friedrich Nietzsche",
-            publisher = "Helen Zimmern Translation",
-            year = "1886",
-            pages = "266",
+            id = "phil_iliad",
+            title = "The Iliad",
+            author = "Homer",
+            publisher = "Alexander Pope Translation",
+            year = "8th C. BC",
+            pages = "460",
             language = "English",
-            size = "1.3 MB",
+            size = "1.6 MB",
             extension = "pdf",
-            coverUrl = "https://www.gutenberg.org/cache/epub/4363/pg4363.cover.medium.jpg",
-            md5 = "beyond_good_evil_nietzsche",
-            source = "Project Gutenberg",
-            description = "A dramatic philosophical critique of traditional morality, religion, and the foundations of truth.",
-            downloadUrl = SAMPLE_PDF
+            coverUrl = "https://www.gutenberg.org/cache/epub/6130/pg6130.cover.medium.jpg",
+            md5 = "the_iliad_homer",
+            source = "Direct PDF Archive",
+            description = "The ancient Greek epic poem celebrating the rage of Achilles during the final weeks of the Trojan War.",
+            downloadUrl = "https://www.planetpublish.com/wp-content/uploads/2011/11/The_Iliad_NT.pdf"
+        ),
+        Book(
+            id = "phil_scarlet",
+            title = "The Scarlet Letter",
+            author = "Nathaniel Hawthorne",
+            publisher = "Ticknor, Reed & Fields",
+            year = "1850",
+            pages = "238",
+            language = "English",
+            size = "1.0 MB",
+            extension = "pdf",
+            coverUrl = "https://www.gutenberg.org/cache/epub/33/pg33.cover.medium.jpg",
+            md5 = "scarlet_letter_hawthorne",
+            source = "Direct PDF Archive",
+            description = "Hester Prynne conceives a daughter out of wedlock in Puritan Boston and struggles to create a new life of repentance and dignity.",
+            downloadUrl = "https://www.planetpublish.com/wp-content/uploads/2011/11/The_Scarlet_Letter_NT.pdf"
         )
     )
 
     val MYSTERY_SHELF: List<Book> = listOf(
-        FEATURED_CLASSICS[3], // Sherlock Holmes
+        FEATURED_CLASSICS[3], // The Hound of the Baskervilles
         FEATURED_CLASSICS[2], // Dracula
         Book(
-            id = "myst_hound_baskerville",
-            title = "The Hound of the Baskervilles",
-            author = "Arthur Conan Doyle",
-            publisher = "George Newnes",
-            year = "1902",
-            pages = "256",
+            id = "myst_jane_eyre",
+            title = "Jane Eyre",
+            author = "Charlotte Brontë",
+            publisher = "Smith, Elder & Co.",
+            year = "1847",
+            pages = "480",
             language = "English",
-            size = "1.2 MB",
+            size = "2.1 MB",
             extension = "pdf",
-            coverUrl = "https://www.gutenberg.org/cache/epub/2852/pg2852.cover.medium.jpg",
-            md5 = "hound_of_the_baskervilles_doyle",
-            source = "Project Gutenberg",
-            description = "Sherlock Holmes and Dr. Watson investigate the legend of a supernatural diabolical hound in Devon.",
-            downloadUrl = SAMPLE_PDF
+            coverUrl = "https://www.gutenberg.org/cache/epub/1260/pg1260.cover.medium.jpg",
+            md5 = "jane_eyre_bronte_1847",
+            source = "Direct PDF Archive",
+            description = "An orphaned governess falls in love with her brooding employer Mr. Rochester at mysterious Thornfield Hall.",
+            downloadUrl = "https://www.planetpublish.com/wp-content/uploads/2011/11/Jane_Eyre_NT.pdf"
         ),
         Book(
-            id = "myst_rue_morgue",
-            title = "The Murders in the Rue Morgue",
-            author = "Edgar Allan Poe",
-            publisher = "Graham's Magazine",
-            year = "1841",
-            pages = "64",
+            id = "myst_wuthering",
+            title = "Wuthering Heights",
+            author = "Emily Brontë",
+            publisher = "Thomas Cautley Newby",
+            year = "1847",
+            pages = "350",
             language = "English",
-            size = "580 KB",
+            size = "1.4 MB",
             extension = "pdf",
-            coverUrl = "https://www.gutenberg.org/cache/epub/2147/pg2147.cover.medium.jpg",
-            md5 = "murders_in_the_rue_morgue_poe",
-            source = "Project Gutenberg",
-            description = "Regarded as the first modern detective story, featuring C. Auguste Dupin solving a bizarre Paris murder.",
-            downloadUrl = SAMPLE_PDF
+            coverUrl = "https://www.gutenberg.org/cache/epub/768/pg768.cover.medium.jpg",
+            md5 = "wuthering_heights_bronte",
+            source = "Direct PDF Archive",
+            description = "The intense, almost demonic love between Catherine Earnshaw and Heathcliff across the wild Yorkshire moors.",
+            downloadUrl = "https://www.planetpublish.com/wp-content/uploads/2011/11/Wuthering_Heights_NT.pdf"
+        ),
+        Book(
+            id = "myst_huckfinn",
+            title = "The Adventures of Huckleberry Finn",
+            author = "Mark Twain",
+            publisher = "Charles L. Webster & Company",
+            year = "1884",
+            pages = "366",
+            language = "English",
+            size = "1.3 MB",
+            extension = "pdf",
+            coverUrl = "https://www.gutenberg.org/cache/epub/76/pg76.cover.medium.jpg",
+            md5 = "huckleberry_finn_twain",
+            source = "Direct PDF Archive",
+            description = "Huck Finn and the runaway slave Jim journey down the Mississippi River in search of freedom.",
+            downloadUrl = "https://www.planetpublish.com/wp-content/uploads/2011/11/The_Adventures_of_Huckleberry_Finn_NT.pdf"
         )
     )
+
+    private val ALL_VERIFIED_BOOKS: List<Book> = (
+        FEATURED_CLASSICS + TOP_10_TODAY + SCIFI_SHELF + PHILOSOPHY_SHELF + MYSTERY_SHELF
+    ).distinctBy { it.id }
 
     suspend fun searchAllSources(query: String): List<Book> = withContext(Dispatchers.IO) {
         val cleanQ = query.trim()
@@ -314,32 +346,28 @@ object SearchEngine {
             return@withContext FEATURED_CLASSICS
         }
 
-        coroutineScope {
-            val libgenDeferred = async { searchLibgen(cleanQ) }
-            val openLibraryDeferred = async { searchOpenLibrary(cleanQ) }
-            val gutenbergDeferred = async { searchGutenberg(cleanQ) }
-
-            val libgenBooks = try { libgenDeferred.await() } catch (e: Exception) { emptyList() }
-            val openLibBooks = try { openLibraryDeferred.await() } catch (e: Exception) { emptyList() }
-            val gutenbergBooks = try { gutenbergDeferred.await() } catch (e: Exception) { emptyList() }
-
-            val combined = (libgenBooks + openLibBooks + gutenbergBooks).distinctBy {
-                it.title.lowercase().replace(Regex("[^a-z0-9]"), "")
-            }
-
-            if (combined.isEmpty()) {
-                val matched = FEATURED_CLASSICS.filter {
-                    it.title.contains(cleanQ, ignoreCase = true) || it.author.contains(cleanQ, ignoreCase = true)
-                }
-                if (matched.isNotEmpty()) matched else FEATURED_CLASSICS
-            } else {
-                combined
-            }
+        // 1. First check verified local direct archive
+        val localMatches = ALL_VERIFIED_BOOKS.filter {
+            it.title.contains(cleanQ, ignoreCase = true) || it.author.contains(cleanQ, ignoreCase = true)
         }
+
+        // 2. Query Libgen (libgen.la / libgen.li)
+        val libgenBooks = try {
+            searchLibgen(cleanQ)
+        } catch (e: Exception) {
+            emptyList()
+        }
+
+        val combined = (localMatches + libgenBooks).distinctBy {
+            it.title.lowercase().replace(Regex("[^a-z0-9]"), "")
+        }
+
+        if (combined.isNotEmpty()) combined else localMatches.ifEmpty { FEATURED_CLASSICS }
     }
 
     /**
      * Libgen Search Implementation (libgen.la / libgen.li)
+     * Queries real direct Libgen catalogs
      */
     private fun searchLibgen(query: String): List<Book> {
         val hosts = listOf("https://libgen.la", "https://libgen.li")
@@ -402,7 +430,7 @@ object SearchEngine {
                                     coverUrl = "$host/covers/${md5.take(4)}/${md5}-d.jpg",
                                     md5 = md5,
                                     source = "Libgen.la",
-                                    description = "Direct catalog match from libgen.la. High-fidelity academic document with mirror resolver.",
+                                    description = "Direct catalog match from libgen.la. Academic document and literature archive.",
                                     downloadUrl = "$host/ads.php?md5=$md5"
                                 )
                             )
@@ -420,108 +448,5 @@ object SearchEngine {
 
     private fun cleanBookTitle(title: String): String {
         return title.replace(Regex("\\[.*?\\]"), "").replace(Regex("\\s+"), " ").trim()
-    }
-
-    private fun searchOpenLibrary(query: String): List<Book> {
-        val url = "https://openlibrary.org/search.json?q=${URLEncoder.encode(query, "UTF-8")}&limit=15"
-        val request = Request.Builder()
-            .url(url)
-            .header("User-Agent", USER_AGENT)
-            .build()
-
-        client.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) return emptyList()
-            val body = response.body?.string() ?: return emptyList()
-            val json = Gson().fromJson(body, JsonObject::class.java)
-            val docs = json.getAsJsonArray("docs") ?: return emptyList()
-
-            val list = mutableListOf<Book>()
-            for (i in 0 until docs.size()) {
-                val doc = docs.get(i).asJsonObject
-                val title = if (doc.has("title")) doc.get("title").asString else "Untitled"
-                val author = if (doc.has("author_name") && doc.getAsJsonArray("author_name").size() > 0) {
-                    doc.getAsJsonArray("author_name").get(0).asString
-                } else "Unknown Author"
-
-                val year = if (doc.has("first_publish_year")) doc.get("first_publish_year").asString else ""
-                val coverId = if (doc.has("cover_i")) doc.get("cover_i").asString else null
-                val coverUrl = if (coverId != null) "https://covers.openlibrary.org/b/id/$coverId-M.jpg" else null
-                val pages = if (doc.has("number_of_pages_median")) doc.get("number_of_pages_median").asString else "220"
-                val key = if (doc.has("key")) doc.get("key").asString.replace("/", "_") else "ol_$i"
-
-                val ia = if (doc.has("ia") && doc.getAsJsonArray("ia").size() > 0) {
-                    doc.getAsJsonArray("ia").get(0).asString
-                } else null
-
-                val downloadUrl = if (ia != null) "https://archive.org/download/$ia/$ia.pdf" else SAMPLE_PDF
-
-                list.add(
-                    Book(
-                        id = "ol_$key",
-                        title = title,
-                        author = author,
-                        publisher = "Open Library",
-                        year = year,
-                        pages = pages,
-                        language = "English",
-                        size = "2.2 MB",
-                        extension = "pdf",
-                        coverUrl = coverUrl,
-                        md5 = key.lowercase(),
-                        source = "Open Library",
-                        description = "Indexed from Internet Archive and Open Library public catalog.",
-                        downloadUrl = downloadUrl
-                    )
-                )
-            }
-            return list
-        }
-    }
-
-    private fun searchGutenberg(query: String): List<Book> {
-        val url = "https://www.gutenberg.org/ebooks/search/?query=${URLEncoder.encode(query, "UTF-8")}"
-        val request = Request.Builder()
-            .url(url)
-            .header("User-Agent", USER_AGENT)
-            .build()
-
-        client.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) return emptyList()
-            val html = response.body?.string() ?: return emptyList()
-            val doc = Jsoup.parse(html)
-            val list = mutableListOf<Book>()
-
-            val links = doc.select("li.booklink")
-            for (link in links) {
-                val a = link.select("a.link").first() ?: continue
-                val href = a.attr("href")
-                val match = Regex("/ebooks/(\\d+)").find(href) ?: continue
-                val bookId = match.groupValues[1]
-
-                val title = link.select(".title").text().trim().ifEmpty { "Untitled" }
-                val author = link.select(".subtitle").text().trim().ifEmpty { "Public Domain Author" }
-                val extra = link.select(".extra").text().trim()
-
-                list.add(
-                    Book(
-                        id = "pg_$bookId",
-                        title = title,
-                        author = author,
-                        publisher = "Project Gutenberg",
-                        year = "Public Domain",
-                        pages = "260",
-                        language = "English",
-                        size = "1.5 MB",
-                        extension = "pdf",
-                        coverUrl = "https://www.gutenberg.org/cache/epub/$bookId/pg$bookId.cover.medium.jpg",
-                        md5 = "pg_$bookId",
-                        source = "Project Gutenberg",
-                        description = extra.ifEmpty { "Verified public-domain edition from Project Gutenberg." },
-                        downloadUrl = SAMPLE_PDF
-                    )
-                )
-            }
-            return list
-        }
     }
 }

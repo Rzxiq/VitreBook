@@ -50,6 +50,7 @@ fun LibraryScreen(
     fun loadStarterBook() {
         coroutineScope.launch {
             isDownloadingStarter = true
+            val starter = SearchEngine.FEATURED_CLASSICS.first()
             try {
                 val downloaded = DownloadService(context).downloadBook(starter) { p ->
                     starterDownloadProgress = p
@@ -61,7 +62,7 @@ fun LibraryScreen(
         }
     }
 
-    val totalBytes = downloadedBooks.sumOf { it.fileSizeBytes }
+    val totalBytes = downloadedBooks.sumOf { it.fileSize }
     val totalSizeMb = String.format("%.1f MB", totalBytes / (1024.0 * 1024.0))
 
     Scaffold(
@@ -172,9 +173,9 @@ fun LibraryScreen(
                 }
             } else {
                 items(downloadedBooks, key = { it.id }) { book ->
-                    val progressFraction = if (book.totalPages > 0) {
-                        book.lastPageRead.toFloat() / book.totalPages.toFloat()
-                    } else null
+                    val progressFraction: Float = if (book.totalPages > 0) {
+                        book.lastReadPage.toFloat() / book.totalPages.toFloat()
+                    } else 0f
 
                     OutlinedCard(
                         modifier = Modifier
@@ -252,7 +253,7 @@ fun LibraryScreen(
                                             border = androidx.compose.foundation.BorderStroke(0.5.dp, ObsidianBorder)
                                         ) {
                                             Text(
-                                                text = "${book.fileSizeBytes / (1024 * 1024)} MB • PDF",
+                                                text = "${book.fileSize / (1024 * 1024)} MB • PDF",
                                                 color = SilverAccent,
                                                 fontSize = 10.sp,
                                                 fontWeight = FontWeight.Bold,
@@ -260,9 +261,9 @@ fun LibraryScreen(
                                             )
                                         }
 
-                                        if (book.lastPageRead > 0) {
+                                        if (book.lastReadPage > 0) {
                                             Text(
-                                                text = "Page ${book.lastPageRead + 1} of ${book.totalPages}",
+                                                text = "Page ${book.lastReadPage + 1} of ${book.totalPages}",
                                                 color = TextMuted,
                                                 fontSize = 10.sp
                                             )
@@ -300,7 +301,7 @@ fun LibraryScreen(
                             }
 
                             // Card Bottom Progress Bar
-                            if (progressFraction != null && progressFraction > 0f) {
+                            if (progressFraction > 0f) {
                                 LinearProgressIndicator(
                                     progress = { progressFraction.coerceIn(0.01f, 1f) },
                                     modifier = Modifier
@@ -336,7 +337,7 @@ fun LibraryScreen(
             text = { Text(text = "Delete \"${bookToDelete?.title}\" from offline storage? You can re-download it anytime.", color = TextMuted) },
             confirmButton = {
                 TextButton(onClick = {
-                    bookToDelete?.let { libraryManager.removeBook(it.id) }
+                    bookToDelete?.let { libraryManager.deleteBook(it.md5) }
                     bookToDelete = null
                 }) {
                     Text(text = "Delete", color = TextDanger, fontWeight = FontWeight.Bold)

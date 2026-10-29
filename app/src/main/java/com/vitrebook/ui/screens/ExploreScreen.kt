@@ -112,7 +112,7 @@ fun ExploreScreen(
             color = IceWhite
         )
         Text(
-            text = "Browse genre hubs or search Libgen, Gutenberg & Open Library",
+            text = "Browse genre hubs or search Libgen & direct PDF archives",
             color = TextMuted,
             fontSize = 12.sp
         )
