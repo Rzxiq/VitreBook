@@ -18,9 +18,9 @@
 
 ## Core Features
 
-1. **Multi-Source E-Book Indexer:**
-   - Real-time client-side search across Open Library and Project Gutenberg.
-   - Optional LibGen edition-metadata search, debounced while typing. These results are metadata-only: VitreBook does not download them, and the detail screen labels them accordingly.
+1. **Local Classics + LibGen Search:**
+   - Searches the built-in classics locally and uses LibGen as the only online search catalog.
+   - LibGen edition results are metadata-only: VitreBook does not download them, and the detail screen labels them accordingly.
    - Verified public-domain classics: *Pride and Prejudice*, *Frankenstein*, *Dracula*, *The Adventures of Sherlock Holmes*, *Alice's Adventures in Wonderland*, *The Art of War*.
    - Filter chips for quick genre exploration (*Classics*, *Fiction*, *Sci-Fi*, *Philosophy*, *Mystery*, *History*).
 

@@ -122,7 +122,7 @@ fun ExploreScreen(
             color = IceWhite
         )
         Text(
-            text = "Browse genre hubs or search public domain & open archives",
+            text = "Browse curated classics or search LibGen edition metadata",
             color = TextMuted,
             fontSize = 12.sp
         )

@@ -100,8 +100,7 @@ fun BookCard(
             ) {
                 // Source Chip
                 val badgeColor = when {
-                    book.source.contains("Gutenberg", ignoreCase = true) -> SecondaryEmerald
-                    book.source.contains("Open Library", ignoreCase = true) -> TertiarySky
+                    book.source.contains("LibGen", ignoreCase = true) -> TertiarySky
                     else -> AccentPurple
                 }
 

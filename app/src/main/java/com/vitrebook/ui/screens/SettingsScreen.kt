@@ -80,33 +80,14 @@ fun SettingsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column {
-                            Text(text = "Libgen.la & Direct Archive", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                            Text(text = "Millions of verified direct full-length PDF books", color = TextMuted, fontSize = 12.sp)
+                            Text(text = "LibGen metadata search", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                            Text(text = "Only online catalog; metadata results are not downloaded", color = TextMuted, fontSize = 12.sp)
                         }
                         Surface(
                             shape = RoundedCornerShape(6.dp),
                             color = TertiarySky.copy(alpha = 0.15f)
                         ) {
-                            Text(text = "ONLINE", color = TertiarySky, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
-                        }
-                    }
-
-                    Divider(modifier = Modifier.padding(vertical = 12.dp), color = ObsidianBorder)
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text(text = "Project Gutenberg", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                            Text(text = "70,000+ public-domain classic e-books", color = TextMuted, fontSize = 12.sp)
-                        }
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = SecondaryEmerald.copy(alpha = 0.15f)
-                        ) {
-                            Text(text = "ONLINE", color = SecondaryEmerald, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                            Text(text = "ONLINE SEARCH", color = TertiarySky, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                         }
                     }
                 }

@@ -2,24 +2,12 @@ package com.vitrebook.data.network
 
 import android.util.Log
 import com.vitrebook.data.model.Book
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.async
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import com.google.gson.JsonParser
-import java.net.URLEncoder
-import java.util.concurrent.TimeUnit
 
 object SearchEngine {
     private const val TAG = "SearchEngine"
-
-    private val client = OkHttpClient.Builder()
-        .connectTimeout(15, TimeUnit.SECONDS)
-        .readTimeout(20, TimeUnit.SECONDS)
-        .followRedirects(true)
-        .build()
 
     const val USER_AGENT = "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36"
 
@@ -453,33 +441,20 @@ object SearchEngine {
         // 1. First check verified local direct PDF archive
         val localMatches = searchLocalArchive(cleanQ)
 
-        // Query both external catalogs concurrently so one unavailable source does not block the other.
-        val gutenbergResults = async {
-            try {
-                searchProjectGutenberg(cleanQ)
-            } catch (e: Exception) {
-                if (e is CancellationException) throw e
-                Log.w(TAG, "Remote Gutenberg search error", e)
-                emptyList()
-            }
+        // LibGen is the only online search source; curated local matches remain available offline.
+        val metadataMatches = try {
+            LibGenSearch.search(cleanQ)
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
+            Log.w(TAG, "LibGen metadata search error", e)
+            emptyList()
         }
-        val libGenResults = async {
-            try {
-                LibGenSearch.search(cleanQ)
-            } catch (e: Exception) {
-                if (e is CancellationException) throw e
-                Log.w(TAG, "LibGen metadata search error", e)
-                emptyList()
-            }
-        }
-        val remoteMatches = gutenbergResults.await()
-        val metadataMatches = libGenResults.await()
 
-        val combined = (localMatches + remoteMatches + metadataMatches).distinctBy {
+        val combined = (localMatches + metadataMatches).distinctBy {
             it.title.lowercase().replace(Regex("[^a-z0-9]"), "")
         }
 
-        Log.d(TAG, "Search completed. Local: ${localMatches.size}, Gutenberg: ${remoteMatches.size}, metadata: ${metadataMatches.size}, Total distinct: ${combined.size}")
+        Log.d(TAG, "Search completed. Local: ${localMatches.size}, LibGen metadata: ${metadataMatches.size}, Total distinct: ${combined.size}")
 
         // Return empty list if no matches found; do not fall back to unrelated samples
         combined
@@ -493,111 +468,5 @@ object SearchEngine {
         }
     }
 
-    /**
-     * Project Gutenberg Search Implementation via Gutendex REST API
-     * Queries real verified public-domain literature catalogs
-     */
-    fun searchProjectGutenberg(query: String): List<Book> {
-        val encodedQuery = URLEncoder.encode(query, "UTF-8")
-        val url = "https://gutendex.com/books/?search=$encodedQuery"
 
-        val request = Request.Builder()
-            .url(url)
-            .header("User-Agent", USER_AGENT)
-            .header("Accept", "application/json")
-            .build()
-
-        client.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) {
-                Log.w(TAG, "Gutenberg search returned HTTP ${response.code}")
-                return emptyList()
-            }
-            val body = response.body?.string() ?: return emptyList()
-            return parseGutenbergResponse(body)
-        }
-    }
-
-    fun parseGutenbergResponse(jsonString: String): List<Book> {
-        val list = mutableListOf<Book>()
-        try {
-            val root = JsonParser.parseString(jsonString).asJsonObject
-            val results = if (root.has("results") && root.get("results").isJsonArray) root.getAsJsonArray("results") else return emptyList()
-
-            for (element in results) {
-                if (!element.isJsonObject) continue
-                val item = element.asJsonObject
-                val id = if (item.has("id") && !item.get("id").isJsonNull) item.get("id").asInt else 0
-                if (id == 0) continue
-
-                val rawTitle = if (item.has("title") && !item.get("title").isJsonNull) item.get("title").asString.trim() else ""
-                if (rawTitle.isEmpty()) continue
-
-                // Format Author
-                val authorsArr = if (item.has("authors") && item.get("authors").isJsonArray) item.getAsJsonArray("authors") else null
-                val author = if (authorsArr != null && authorsArr.size() > 0 && authorsArr.get(0).isJsonObject) {
-                    val authorObj = authorsArr.get(0).asJsonObject
-                    val rawName = if (authorObj.has("name") && !authorObj.get("name").isJsonNull) authorObj.get("name").asString else "Unknown Author"
-                    formatAuthorName(rawName)
-                } else {
-                    "Unknown Author"
-                }
-
-                // Formats & Direct Download URLs
-                val formatsObj = if (item.has("formats") && item.get("formats").isJsonObject) item.getAsJsonObject("formats") else null
-                val coverUrl = if (formatsObj != null && formatsObj.has("image/jpeg") && !formatsObj.get("image/jpeg").isJsonNull) formatsObj.get("image/jpeg").asString else null
-                val epubUrl = if (formatsObj != null && formatsObj.has("application/epub+zip") && !formatsObj.get("application/epub+zip").isJsonNull) formatsObj.get("application/epub+zip").asString else null
-                val textUrl = if (formatsObj != null && formatsObj.has("text/plain; charset=utf-8") && !formatsObj.get("text/plain; charset=utf-8").isJsonNull) formatsObj.get("text/plain; charset=utf-8").asString else null
-                val htmlUrl = if (formatsObj != null && formatsObj.has("text/html") && !formatsObj.get("text/html").isJsonNull) formatsObj.get("text/html").asString else null
-                val downloadUrl = epubUrl ?: textUrl ?: htmlUrl
-
-                // Languages
-                val langArr = if (item.has("languages") && item.get("languages").isJsonArray) item.getAsJsonArray("languages") else null
-                val language = if (langArr != null && langArr.size() > 0) {
-                    val langCode = langArr.get(0).asString
-                    if (langCode == "en") "English" else langCode.uppercase()
-                } else "English"
-
-                // Summaries
-                val summariesArr = if (item.has("summaries") && item.get("summaries").isJsonArray) item.getAsJsonArray("summaries") else null
-                val summary = if (summariesArr != null && summariesArr.size() > 0) {
-                    summariesArr.get(0).asString
-                } else null
-
-                list.add(
-                    Book(
-                        id = "guten_$id",
-                        title = cleanBookTitle(rawTitle),
-                        author = author,
-                        publisher = "Project Gutenberg",
-                        year = "Public Domain",
-                        pages = "Complete Edition",
-                        language = language,
-                        size = "Verified",
-                        extension = if (epubUrl != null) "epub" else "pdf",
-                        coverUrl = coverUrl,
-                        md5 = "gutenberg_archive_$id",
-                        source = "Project Gutenberg",
-                        description = summary ?: "Verified public-domain literary edition from Project Gutenberg archives.",
-                        downloadUrl = downloadUrl
-                    )
-                )
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to parse Gutenberg response: ${e.message}")
-        }
-        return list
-    }
-
-    fun formatAuthorName(raw: String): String {
-        return if (raw.contains(",")) {
-            val parts = raw.split(",").map { it.trim() }
-            if (parts.size >= 2) "${parts[1]} ${parts[0]}".trim() else raw
-        } else {
-            raw
-        }
-    }
-
-    fun cleanBookTitle(title: String): String {
-        return title.replace(Regex("\\[.*?\\]"), "").replace(Regex("\\s+"), " ").trim()
-    }
 }

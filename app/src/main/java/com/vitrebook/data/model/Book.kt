@@ -14,7 +14,7 @@ data class Book(
     @SerializedName("extension") val extension: String = "pdf",
     @SerializedName("coverUrl") val coverUrl: String? = null,
     @SerializedName("md5") val md5: String,
-    @SerializedName("source") val source: String = "Open Library",
+    @SerializedName("source") val source: String = "Local Archive",
     @SerializedName("description") val description: String? = null,
     @SerializedName("downloadUrl") val downloadUrl: String? = null,
     @SerializedName("editionPageUrl") val editionPageUrl: String? = null
