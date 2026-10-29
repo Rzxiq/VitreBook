@@ -10,6 +10,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -27,7 +28,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             VitreBookTheme {
-                var currentTab by remember { mutableStateOf<Screen>(Screen.Explore) }
+                var currentTab by remember { mutableStateOf<Screen>(Screen.Home) }
                 var selectedBookForDetail by remember { mutableStateOf<Book?>(null) }
                 var activeReadingBook by remember { mutableStateOf<DownloadedBook?>(null) }
 
@@ -44,7 +45,7 @@ class MainActivity : ComponentActivity() {
                     color = ObsidianBackground
                 ) {
                     when {
-                        // Full Screen Native PDF Reader
+                        // Full Screen Native PDF Reader ("Gesture-Only Theater Mode")
                         activeReadingBook != null -> {
                             PdfReaderScreen(
                                 book = activeReadingBook!!,
@@ -53,7 +54,7 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        // Book Detail View
+                        // Full-Screen Cinematic Movie-Page Detail View
                         selectedBookForDetail != null -> {
                             BookDetailScreen(
                                 book = selectedBookForDetail!!,
@@ -62,11 +63,14 @@ class MainActivity : ComponentActivity() {
                                 onOpenReader = { downloaded ->
                                     selectedBookForDetail = null
                                     activeReadingBook = downloaded
+                                },
+                                onBookSelected = { related ->
+                                    selectedBookForDetail = related
                                 }
                             )
                         }
 
-                        // Main Tabs Scaffold with Translucent Glass NavigationBar (No Emoji)
+                        // Main 4-Tab Streaming Glass Dock (Home, Search, Downloads, Settings)
                         else -> {
                             Scaffold(
                                 containerColor = ObsidianBackground,
@@ -75,17 +79,22 @@ class MainActivity : ComponentActivity() {
                                         color = ObsidianSurface.copy(alpha = 0.92f),
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .padding(horizontal = 14.dp, vertical = 8.dp)
-                                            .clip(RoundedCornerShape(24.dp)),
+                                            .padding(horizontal = 14.dp, vertical = 10.dp)
+                                            .clip(RoundedCornerShape(26.dp)),
                                         border = androidx.compose.foundation.BorderStroke(1.dp, ObsidianBorder),
-                                        shadowElevation = 8.dp
+                                        shadowElevation = 12.dp
                                     ) {
                                         NavigationBar(
-                                            containerColor = androidx.compose.ui.graphics.Color.Transparent,
+                                            containerColor = Color.Transparent,
                                             tonalElevation = 0.dp,
                                             modifier = Modifier.height(64.dp)
                                         ) {
-                                            val items = listOf(Screen.Explore, Screen.Library, Screen.Settings)
+                                            val items = listOf(
+                                                Screen.Home,
+                                                Screen.Search,
+                                                Screen.Downloads,
+                                                Screen.Settings
+                                            )
                                             items.forEach { screen ->
                                                 val isSelected = currentTab == screen
                                                 NavigationBarItem(
@@ -102,12 +111,12 @@ class MainActivity : ComponentActivity() {
                                                         Text(
                                                             text = screen.title,
                                                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                                            fontSize = 11.sp
+                                                            fontSize = 10.sp
                                                         )
                                                     },
                                                     colors = NavigationBarItemDefaults.colors(
-                                                        selectedIconColor = TextPrimary,
-                                                        selectedTextColor = TextPrimary,
+                                                        selectedIconColor = IceWhite,
+                                                        selectedTextColor = IceWhite,
                                                         unselectedIconColor = TextMuted,
                                                         unselectedTextColor = TextMuted,
                                                         indicatorColor = ObsidianSurfaceElevated
@@ -125,14 +134,25 @@ class MainActivity : ComponentActivity() {
                                     color = ObsidianBackground
                                 ) {
                                     when (currentTab) {
-                                        is Screen.Explore -> {
+                                        is Screen.Home -> {
+                                            HomeScreen(
+                                                libraryManager = libraryManager,
+                                                onBookSelected = { book ->
+                                                    selectedBookForDetail = book
+                                                },
+                                                onOpenReader = { downloaded ->
+                                                    activeReadingBook = downloaded
+                                                }
+                                            )
+                                        }
+                                        is Screen.Search -> {
                                             ExploreScreen(
                                                 onBookSelected = { book ->
                                                     selectedBookForDetail = book
                                                 }
                                             )
                                         }
-                                        is Screen.Library -> {
+                                        is Screen.Downloads -> {
                                             LibraryScreen(
                                                 libraryManager = libraryManager,
                                                 onOpenReader = { downloaded ->

@@ -1,6 +1,8 @@
 package com.vitrebook.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -9,13 +11,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.LocalLibrary
-import androidx.compose.material.icons.filled.MenuBook
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -23,9 +26,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import com.vitrebook.data.model.Book
 import com.vitrebook.data.model.DownloadedBook
 import com.vitrebook.data.network.DownloadService
+import com.vitrebook.data.network.SearchEngine
 import com.vitrebook.data.repository.LibraryManager
 import com.vitrebook.ui.components.DownloadProgressDialog
 import com.vitrebook.ui.theme.*
@@ -41,36 +44,25 @@ fun LibraryScreen(
     val downloadedBooks by libraryManager.booksFlow.collectAsState()
 
     var isDownloadingStarter by remember { mutableStateOf(false) }
-    var starterProgress by remember { mutableStateOf<com.vitrebook.data.model.DownloadProgress?>(null) }
+    var starterDownloadProgress by remember { mutableStateOf<com.vitrebook.data.model.DownloadProgress?>(null) }
+    var bookToDelete by remember { mutableStateOf<DownloadedBook?>(null) }
 
     fun loadStarterBook() {
-        val sample = Book(
-            id = "starter_book_01",
-            title = "VitreBook Starter Guide (Sample PDF)",
-            author = "VitreBook Project",
-            publisher = "Open Access Documentation",
-            year = "2024",
-            pages = "14",
-            language = "English",
-            size = "1.2 MB",
-            extension = "pdf",
-            coverUrl = "https://raw.githubusercontent.com/mozilla/pdf.js/master/examples/learning/helloworld.pdf",
-            md5 = "starter_sample_pdf_guide",
-            source = "Starter Guide",
-            description = "A complete multi-page document to test native Android page flipping, night mode color inversion, and reading memory.",
-            downloadUrl = "https://raw.githubusercontent.com/mozilla/pdf.js/master/web/compressed.tracemonkey-pldi-09.pdf"
-        )
-
         coroutineScope.launch {
             isDownloadingStarter = true
-            val downloaded = DownloadService(context).downloadBook(sample) { prog ->
-                starterProgress = prog
-            }
-            libraryManager.saveBook(downloaded)
+            try {
+                val downloaded = DownloadService(context).downloadBook(starter) { p ->
+                    starterDownloadProgress = p
+                }
+                libraryManager.saveBook(downloaded)
+            } catch (ignored: Exception) {}
             isDownloadingStarter = false
-            onOpenReader(downloaded)
+            starterDownloadProgress = null
         }
     }
+
+    val totalBytes = downloadedBooks.sumOf { it.fileSizeBytes }
+    val totalSizeMb = String.format("%.1f MB", totalBytes / (1024.0 * 1024.0))
 
     Scaffold(
         containerColor = ObsidianBackground
@@ -83,9 +75,8 @@ fun LibraryScreen(
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             item {
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
-                // Header
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -93,22 +84,24 @@ fun LibraryScreen(
                 ) {
                     Column {
                         Text(
-                            text = "My Library",
-                            style = MaterialTheme.typography.headlineLarge,
-                            fontWeight = FontWeight.ExtraBold
+                            text = "Downloads Locker",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = IceWhite
                         )
                         Text(
-                            text = "${downloadedBooks.size} downloaded offline books",
+                            text = "$totalSizeMb used • ${downloadedBooks.size} books stored offline",
                             color = TextMuted,
                             fontSize = 12.sp
                         )
                     }
 
+                    // Quick starter download button for instant testing
                     Button(
                         onClick = { loadStarterBook() },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = ObsidianSurfaceElevated,
-                            contentColor = TextPrimary
+                            contentColor = IceWhite
                         ),
                         shape = RoundedCornerShape(10.dp),
                         border = androidx.compose.foundation.BorderStroke(1.dp, ObsidianBorder),
@@ -117,11 +110,11 @@ fun LibraryScreen(
                         Icon(
                             imageVector = Icons.Default.Bolt,
                             contentDescription = null,
-                            tint = SecondaryEmerald,
+                            tint = IceWhite,
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text(text = "Starter Book", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text(text = "Quick Starter", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -140,161 +133,182 @@ fun LibraryScreen(
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(32.dp),
+                                .padding(36.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Icon(
-                                imageVector = Icons.Default.LocalLibrary,
+                                imageVector = Icons.Default.Download,
                                 contentDescription = null,
                                 tint = TextMuted,
                                 modifier = Modifier.size(54.dp)
                             )
-                            Spacer(modifier = Modifier.height(14.dp))
+                            Spacer(modifier = Modifier.height(16.dp))
                             Text(
-                                text = "Your Library is Empty",
+                                text = "Locker is Empty",
                                 style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
+                                color = IceWhite
                             )
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
-                                text = "Search books in Explore to download, or load our instant sample guide to test the native reader.",
+                                text = "Downloaded books are saved here for full offline reading with zero internet connection.",
                                 color = TextMuted,
                                 fontSize = 13.sp,
-                                modifier = Modifier.padding(horizontal = 8.dp),
                                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
                             )
                             Spacer(modifier = Modifier.height(20.dp))
                             Button(
                                 onClick = { loadStarterBook() },
-                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryRuby),
-                                shape = RoundedCornerShape(12.dp)
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = IceWhite,
+                                    contentColor = Color.Black
+                                ),
+                                shape = RoundedCornerShape(10.dp)
                             ) {
-                                Text(text = "Load Starter Guide (Sample PDF)", fontWeight = FontWeight.Bold)
+                                Text(text = "Download Starter Book", fontWeight = FontWeight.Bold)
                             }
                         }
                     }
                 }
             } else {
-                items(downloadedBooks, key = { it.md5 }) { book ->
+                items(downloadedBooks, key = { it.id }) { book ->
+                    val progressFraction = if (book.totalPages > 0) {
+                        book.lastPageRead.toFloat() / book.totalPages.toFloat()
+                    } else null
+
                     OutlinedCard(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onOpenReader(book) },
                         shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.outlinedCardColors(containerColor = ObsidianSurface),
                         border = CardDefaults.outlinedCardBorder().copy(
                             brush = androidx.compose.ui.graphics.SolidColor(ObsidianBorder)
                         )
                     ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            // Cover
-                            Box(
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Row(
                                 modifier = Modifier
-                                    .width(68.dp)
-                                    .height(98.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(ObsidianSurfaceElevated)
+                                    .fillMaxWidth()
+                                    .padding(14.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                if (!book.coverUrl.isNullOrEmpty()) {
-                                    AsyncImage(
-                                        model = book.coverUrl,
-                                        contentDescription = book.title,
-                                        contentScale = ContentScale.Crop,
-                                        modifier = Modifier.fillMaxSize()
+                                // Cover Art
+                                Box(
+                                    modifier = Modifier
+                                        .width(64.dp)
+                                        .height(96.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(ObsidianSurfaceElevated)
+                                        .border(1.dp, ObsidianBorder, RoundedCornerShape(8.dp))
+                                ) {
+                                    if (!book.coverUrl.isNullOrEmpty()) {
+                                        AsyncImage(
+                                            model = book.coverUrl,
+                                            contentDescription = book.title,
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier.fillMaxSize()
+                                        )
+                                    } else {
+                                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                            Icon(
+                                                imageVector = Icons.Default.Book,
+                                                contentDescription = null,
+                                                tint = TextMuted,
+                                                modifier = Modifier.size(24.dp)
+                                            )
+                                        }
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.width(14.dp))
+
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = book.title,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = IceWhite,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
                                     )
-                                } else {
-                                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                    Text(
+                                        text = book.author,
+                                        color = TextMuted,
+                                        fontSize = 12.sp,
+                                        maxLines = 1
+                                    )
+
+                                    Spacer(modifier = Modifier.height(6.dp))
+
+                                    // Metadata Badges Row
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Surface(
+                                            shape = RoundedCornerShape(4.dp),
+                                            color = ObsidianSurfaceElevated,
+                                            border = androidx.compose.foundation.BorderStroke(0.5.dp, ObsidianBorder)
+                                        ) {
+                                            Text(
+                                                text = "${book.fileSizeBytes / (1024 * 1024)} MB • PDF",
+                                                color = SilverAccent,
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                            )
+                                        }
+
+                                        if (book.lastPageRead > 0) {
+                                            Text(
+                                                text = "Page ${book.lastPageRead + 1} of ${book.totalPages}",
+                                                color = TextMuted,
+                                                fontSize = 10.sp
+                                            )
+                                        }
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.width(8.dp))
+
+                                // Resume button & Delete action
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    IconButton(
+                                        onClick = { onOpenReader(book) },
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .background(IceWhite, RoundedCornerShape(18.dp))
+                                    ) {
                                         Icon(
-                                            imageVector = Icons.Default.Book,
-                                            contentDescription = null,
-                                            tint = TextMuted,
-                                            modifier = Modifier.size(24.dp)
+                                            Icons.Default.PlayArrow,
+                                            contentDescription = "Read",
+                                            tint = Color.Black,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+
+                                    IconButton(onClick = { bookToDelete = book }) {
+                                        Icon(
+                                            Icons.Default.Delete,
+                                            contentDescription = "Delete",
+                                            tint = TextDanger,
+                                            modifier = Modifier.size(20.dp)
                                         )
                                     }
                                 }
                             }
 
-                            Spacer(modifier = Modifier.width(14.dp))
-
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = book.title,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis
+                            // Card Bottom Progress Bar
+                            if (progressFraction != null && progressFraction > 0f) {
+                                LinearProgressIndicator(
+                                    progress = { progressFraction.coerceIn(0.01f, 1f) },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(3.dp),
+                                    color = IceWhite,
+                                    trackColor = Color(0x33FFFFFF)
                                 )
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = book.author,
-                                    color = TextSecondary,
-                                    fontSize = 12.sp,
-                                    maxLines = 1
-                                )
-
-                                Spacer(modifier = Modifier.height(8.dp))
-
-                                // Reading progress
-                                val progressFraction = if (book.totalPages > 0) {
-                                    (book.lastReadPage.toFloat() / book.totalPages.toFloat()).coerceIn(0f, 1f)
-                                } else 0f
-                                val progressPercent = (progressFraction * 100).toInt()
-
-                                Column {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween
-                                    ) {
-                                        Text(
-                                            text = if (book.lastReadPage > 0) "Page ${book.lastReadPage + 1} of ${book.totalPages}" else "Unread",
-                                            color = TextMuted,
-                                            fontSize = 10.sp
-                                        )
-                                        Text(
-                                            text = "$progressPercent%",
-                                            color = SecondaryEmerald,
-                                            fontSize = 10.sp,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    LinearProgressIndicator(
-                                        progress = { progressFraction },
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(4.dp),
-                                        color = SecondaryEmerald,
-                                        trackColor = ObsidianBorder
-                                    )
-                                }
-
-                                Spacer(modifier = Modifier.height(10.dp))
-
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Button(
-                                        onClick = { onOpenReader(book) },
-                                        modifier = Modifier.weight(1f),
-                                        shape = RoundedCornerShape(8.dp),
-                                        colors = ButtonDefaults.buttonColors(containerColor = TextPrimary, contentColor = ObsidianBackground),
-                                        contentPadding = PaddingValues(vertical = 6.dp)
-                                    ) {
-                                        Icon(Icons.Default.MenuBook, contentDescription = null, modifier = Modifier.size(16.dp))
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text(text = if (book.lastReadPage > 0) "Continue" else "Read Now", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                                    }
-
-                                    IconButton(
-                                        onClick = { libraryManager.deleteBook(book.md5) },
-                                        modifier = Modifier.size(36.dp)
-                                    ) {
-                                        Icon(Icons.Default.Delete, contentDescription = "Delete", tint = TextDanger, modifier = Modifier.size(18.dp))
-                                    }
-                                }
                             }
                         }
                     }
@@ -302,16 +316,39 @@ fun LibraryScreen(
             }
 
             item {
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(110.dp))
             }
         }
     }
 
     if (isDownloadingStarter) {
         DownloadProgressDialog(
-            bookTitle = "VitreBook Starter Guide",
-            progress = starterProgress,
+            bookTitle = "Pride and Prejudice",
+            progress = starterDownloadProgress,
             onCancel = { isDownloadingStarter = false }
+        )
+    }
+
+    if (bookToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { bookToDelete = null },
+            title = { Text(text = "Remove from Locker?", color = IceWhite) },
+            text = { Text(text = "Delete \"${bookToDelete?.title}\" from offline storage? You can re-download it anytime.", color = TextMuted) },
+            confirmButton = {
+                TextButton(onClick = {
+                    bookToDelete?.let { libraryManager.removeBook(it.id) }
+                    bookToDelete = null
+                }) {
+                    Text(text = "Delete", color = TextDanger, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { bookToDelete = null }) {
+                    Text(text = "Cancel", color = IceWhite)
+                }
+            },
+            containerColor = ObsidianSurface,
+            shape = RoundedCornerShape(16.dp)
         )
     }
 }

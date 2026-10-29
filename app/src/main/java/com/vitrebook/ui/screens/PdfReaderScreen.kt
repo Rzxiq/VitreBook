@@ -66,7 +66,7 @@ fun PdfReaderScreen(
     var totalPageCount by remember { mutableIntStateOf(book.totalPages.coerceAtLeast(1)) }
     var renderedBitmap by remember { mutableStateOf<Bitmap?>(null) }
     var isNightMode by remember { mutableStateOf(true) }
-    var isFullscreen by remember { mutableStateOf(false) }
+    var isFullscreen by remember { mutableStateOf(true) }
     var scale by remember { mutableFloatStateOf(1f) }
     var offsetX by remember { mutableFloatStateOf(0f) }
     var offsetY by remember { mutableFloatStateOf(0f) }
@@ -270,6 +270,7 @@ fun PdfReaderScreen(
                 .padding(innerPadding)
                 .pointerInput(Unit) {
                     detectTapGestures(
+                        onDoubleTap = { isFullscreen = !isFullscreen },
                         onTap = { offset ->
                             val width = size.width
                             when {

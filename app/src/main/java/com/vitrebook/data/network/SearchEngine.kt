@@ -122,6 +122,192 @@ object SearchEngine {
         )
     )
 
+    val TOP_10_TODAY: List<Book> = listOf(
+        FEATURED_CLASSICS[0], // Pride and Prejudice
+        FEATURED_CLASSICS[1], // Frankenstein
+        Book(
+            id = "top_timemachine",
+            title = "The Time Machine",
+            author = "H. G. Wells",
+            publisher = "Heinemann",
+            year = "1895",
+            pages = "118",
+            language = "English",
+            size = "950 KB",
+            extension = "pdf",
+            coverUrl = "https://www.gutenberg.org/cache/epub/35/pg35.cover.medium.jpg",
+            md5 = "time_machine_wells_1895",
+            source = "Project Gutenberg",
+            description = "A Victorian scientist travels into the far future year 802,701 AD to discover humanity divided into Eloi and Morlocks.",
+            downloadUrl = SAMPLE_PDF
+        ),
+        FEATURED_CLASSICS[2], // Dracula
+        Book(
+            id = "top_meditations",
+            title = "Meditations",
+            author = "Marcus Aurelius",
+            publisher = "George Long Translation",
+            year = "180 AD",
+            pages = "180",
+            language = "English",
+            size = "1.1 MB",
+            extension = "pdf",
+            coverUrl = "https://www.gutenberg.org/cache/epub/2680/pg2680.cover.medium.jpg",
+            md5 = "meditations_aurelius",
+            source = "Project Gutenberg",
+            description = "Personal philosophical writings of Roman Emperor Marcus Aurelius on Stoic philosophy and cosmic duty.",
+            downloadUrl = SAMPLE_PDF
+        ),
+        FEATURED_CLASSICS[3], // Sherlock Holmes
+        Book(
+            id = "top_republic",
+            title = "The Republic",
+            author = "Plato",
+            publisher = "Benjamin Jowett Translation",
+            year = "375 BC",
+            pages = "416",
+            language = "English",
+            size = "2.1 MB",
+            extension = "pdf",
+            coverUrl = "https://www.gutenberg.org/cache/epub/1497/pg1497.cover.medium.jpg",
+            md5 = "the_republic_plato",
+            source = "Project Gutenberg",
+            description = "A Socratic dialogue concerning justice, the order of the just city-state, and the nature of the philosopher king.",
+            downloadUrl = SAMPLE_PDF
+        ),
+        FEATURED_CLASSICS[5], // The Art of War
+        Book(
+            id = "top_warworlds",
+            title = "The War of the Worlds",
+            author = "H. G. Wells",
+            publisher = "William Heinemann",
+            year = "1898",
+            pages = "288",
+            language = "English",
+            size = "1.5 MB",
+            extension = "pdf",
+            coverUrl = "https://www.gutenberg.org/cache/epub/36/pg36.cover.medium.jpg",
+            md5 = "war_of_the_worlds_wells",
+            source = "Project Gutenberg",
+            description = "One of the earliest stories that detail a conflict between mankind and an extraterrestrial race from Mars.",
+            downloadUrl = SAMPLE_PDF
+        ),
+        FEATURED_CLASSICS[4] // Alice in Wonderland
+    )
+
+    val SCIFI_SHELF: List<Book> = listOf(
+        FEATURED_CLASSICS[1], // Frankenstein
+        TOP_10_TODAY[2], // The Time Machine
+        TOP_10_TODAY[8], // The War of the Worlds
+        Book(
+            id = "scifi_center_earth",
+            title = "A Journey to the Centre of the Earth",
+            author = "Jules Verne",
+            publisher = "Pierre-Jules Hetzel",
+            year = "1864",
+            pages = "254",
+            language = "English",
+            size = "1.3 MB",
+            extension = "pdf",
+            coverUrl = "https://www.gutenberg.org/cache/epub/18857/pg18857.cover.medium.jpg",
+            md5 = "journey_center_earth_verne",
+            source = "Project Gutenberg",
+            description = "Professor Otto Lidenbrock leads an expedition into a volcanic crater descending into the center of the earth.",
+            downloadUrl = SAMPLE_PDF
+        ),
+        Book(
+            id = "scifi_20000_leagues",
+            title = "Twenty Thousand Leagues Under the Sea",
+            author = "Jules Verne",
+            publisher = "Pierre-Jules Hetzel",
+            year = "1870",
+            pages = "390",
+            language = "English",
+            size = "1.8 MB",
+            extension = "pdf",
+            coverUrl = "https://www.gutenberg.org/cache/epub/164/pg164.cover.medium.jpg",
+            md5 = "twenty_thousand_leagues_verne",
+            source = "Project Gutenberg",
+            description = "Captain Nemo and his submarine Nautilus explore the wonder and depths of the world's oceans.",
+            downloadUrl = SAMPLE_PDF
+        )
+    )
+
+    val PHILOSOPHY_SHELF: List<Book> = listOf(
+        TOP_10_TODAY[4], // Meditations
+        TOP_10_TODAY[6], // The Republic
+        FEATURED_CLASSICS[5], // The Art of War
+        Book(
+            id = "phil_prince",
+            title = "The Prince",
+            author = "Niccolò Machiavelli",
+            publisher = "W. K. Marriott Translation",
+            year = "1532",
+            pages = "140",
+            language = "English",
+            size = "920 KB",
+            extension = "pdf",
+            coverUrl = "https://www.gutenberg.org/cache/epub/1232/pg1232.cover.medium.jpg",
+            md5 = "the_prince_machiavelli",
+            source = "Project Gutenberg",
+            description = "A political treatise on how princely rulers should acquire, retain, and exert practical political power.",
+            downloadUrl = SAMPLE_PDF
+        ),
+        Book(
+            id = "phil_beyond_good",
+            title = "Beyond Good and Evil",
+            author = "Friedrich Nietzsche",
+            publisher = "Helen Zimmern Translation",
+            year = "1886",
+            pages = "266",
+            language = "English",
+            size = "1.3 MB",
+            extension = "pdf",
+            coverUrl = "https://www.gutenberg.org/cache/epub/4363/pg4363.cover.medium.jpg",
+            md5 = "beyond_good_evil_nietzsche",
+            source = "Project Gutenberg",
+            description = "A dramatic philosophical critique of traditional morality, religion, and the foundations of truth.",
+            downloadUrl = SAMPLE_PDF
+        )
+    )
+
+    val MYSTERY_SHELF: List<Book> = listOf(
+        FEATURED_CLASSICS[3], // Sherlock Holmes
+        FEATURED_CLASSICS[2], // Dracula
+        Book(
+            id = "myst_hound_baskerville",
+            title = "The Hound of the Baskervilles",
+            author = "Arthur Conan Doyle",
+            publisher = "George Newnes",
+            year = "1902",
+            pages = "256",
+            language = "English",
+            size = "1.2 MB",
+            extension = "pdf",
+            coverUrl = "https://www.gutenberg.org/cache/epub/2852/pg2852.cover.medium.jpg",
+            md5 = "hound_of_the_baskervilles_doyle",
+            source = "Project Gutenberg",
+            description = "Sherlock Holmes and Dr. Watson investigate the legend of a supernatural diabolical hound in Devon.",
+            downloadUrl = SAMPLE_PDF
+        ),
+        Book(
+            id = "myst_rue_morgue",
+            title = "The Murders in the Rue Morgue",
+            author = "Edgar Allan Poe",
+            publisher = "Graham's Magazine",
+            year = "1841",
+            pages = "64",
+            language = "English",
+            size = "580 KB",
+            extension = "pdf",
+            coverUrl = "https://www.gutenberg.org/cache/epub/2147/pg2147.cover.medium.jpg",
+            md5 = "murders_in_the_rue_morgue_poe",
+            source = "Project Gutenberg",
+            description = "Regarded as the first modern detective story, featuring C. Auguste Dupin solving a bizarre Paris murder.",
+            downloadUrl = SAMPLE_PDF
+        )
+    )
+
     suspend fun searchAllSources(query: String): List<Book> = withContext(Dispatchers.IO) {
         val cleanQ = query.trim()
         if (cleanQ.isEmpty()) {
