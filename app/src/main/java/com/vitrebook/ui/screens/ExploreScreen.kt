@@ -9,6 +9,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.LocalLibrary
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -73,7 +74,7 @@ fun ExploreScreen(
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
-                                    imageVector = androidx.compose.material.icons.Icons.Default.LocalLibrary,
+                                    imageVector = Icons.Default.LocalLibrary,
                                     contentDescription = null,
                                     tint = PrimaryRuby,
                                     modifier = Modifier.size(22.dp)

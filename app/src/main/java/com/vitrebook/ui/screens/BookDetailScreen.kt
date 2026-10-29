@@ -7,6 +7,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material3.*
@@ -102,7 +103,7 @@ fun BookDetailScreen(
                     )
                 } else {
                     Icon(
-                        imageVector = androidx.compose.material.icons.Icons.Default.Book,
+                        imageVector = Icons.Default.Book,
                         contentDescription = null,
                         tint = TextMuted,
                         modifier = Modifier.size(56.dp)

@@ -6,7 +6,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.LocalLibrary
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -112,7 +115,7 @@ fun LibraryScreen(
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                     ) {
                         Icon(
-                            imageVector = androidx.compose.material.icons.Icons.Default.Bolt,
+                            imageVector = Icons.Default.Bolt,
                             contentDescription = null,
                             tint = SecondaryEmerald,
                             modifier = Modifier.size(16.dp)
@@ -141,7 +144,7 @@ fun LibraryScreen(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Icon(
-                                imageVector = androidx.compose.material.icons.Icons.Default.LocalLibrary,
+                                imageVector = Icons.Default.LocalLibrary,
                                 contentDescription = null,
                                 tint = TextMuted,
                                 modifier = Modifier.size(54.dp)
@@ -205,7 +208,7 @@ fun LibraryScreen(
                                 } else {
                                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                         Icon(
-                                            imageVector = androidx.compose.material.icons.Icons.Default.Book,
+                                            imageVector = Icons.Default.Book,
                                             contentDescription = null,
                                             tint = TextMuted,
                                             modifier = Modifier.size(24.dp)
