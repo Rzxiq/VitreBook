@@ -182,7 +182,7 @@ fun SettingsScreen(
                     )
 
                     Text(
-                        text = "Version 2.2.1 (Direct PDF Cinema Edition • Material 3)",
+                        text = "Version 2.2.2 (Open Domain Cinema Edition • Material 3)",
                         color = TextMuted,
                         fontSize = 12.sp
                     )

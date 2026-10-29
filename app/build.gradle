@@ -11,8 +11,8 @@ android {
         applicationId 'com.vitrebook'
         minSdk 24
         targetSdk 34
-        versionCode 11
-        versionName '2.2.1'
+        versionCode 12
+        versionName '2.2.2'
 
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
         vectorDrawables {
@@ -98,6 +98,10 @@ dependencies {
 
     // Coroutines
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
+
+    // Testing
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3'
 
     debugImplementation 'androidx.compose.ui:ui-tooling'
     debugImplementation 'androidx.compose.ui:ui-test-manifest'

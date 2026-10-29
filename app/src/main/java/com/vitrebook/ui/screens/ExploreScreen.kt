@@ -112,7 +112,7 @@ fun ExploreScreen(
             color = IceWhite
         )
         Text(
-            text = "Browse genre hubs or search Libgen & direct PDF archives",
+            text = "Browse genre hubs or search public domain & open archives",
             color = TextMuted,
             fontSize = 12.sp
         )
@@ -286,23 +286,55 @@ fun ExploreScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(3),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
-                modifier = Modifier.fillMaxSize()
-            ) {
-                items(books) { book ->
-                    StreamingPosterCard(
-                        book = book,
-                        width = 104,
-                        height = 156,
-                        onClick = { onBookSelected(book) }
-                    )
+            if (books.isEmpty() && !isLoading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 48.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = null,
+                            tint = TextMuted,
+                            modifier = Modifier.size(48.dp)
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "No Books Found",
+                            color = IceWhite,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "No direct titles matched '$query'.\nTry searching for author name, or explore genre hubs.",
+                            color = TextMuted,
+                            fontSize = 13.sp,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                    }
                 }
+            } else {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(3),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    items(books) { book ->
+                        StreamingPosterCard(
+                            book = book,
+                            width = 104,
+                            height = 156,
+                            onClick = { onBookSelected(book) }
+                        )
+                    }
 
-                item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(3) }) {
-                    Spacer(modifier = Modifier.height(110.dp))
+                    item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(3) }) {
+                        Spacer(modifier = Modifier.height(110.dp))
+                    }
                 }
             }
         }

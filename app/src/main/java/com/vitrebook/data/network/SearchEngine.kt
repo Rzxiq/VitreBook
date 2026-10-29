@@ -1,20 +1,21 @@
 package com.vitrebook.data.network
 
+import android.util.Log
 import com.vitrebook.data.model.Book
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import org.jsoup.Jsoup
+import org.json.JSONObject
 import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 
 object SearchEngine {
+    private const val TAG = "SearchEngine"
+
     private val client = OkHttpClient.Builder()
-        .connectTimeout(12, TimeUnit.SECONDS)
-        .readTimeout(15, TimeUnit.SECONDS)
+        .connectTimeout(15, TimeUnit.SECONDS)
+        .readTimeout(20, TimeUnit.SECONDS)
         .followRedirects(true)
         .build()
 
@@ -336,8 +337,107 @@ object SearchEngine {
         )
     )
 
+    val MORE_CLASSICS: List<Book> = listOf(
+        Book(
+            id = "class_great_exp",
+            title = "Great Expectations",
+            author = "Charles Dickens",
+            publisher = "Chapman & Hall",
+            year = "1861",
+            pages = "505",
+            language = "English",
+            size = "2.2 MB",
+            extension = "pdf",
+            coverUrl = "https://www.gutenberg.org/cache/epub/1400/pg1400.cover.medium.jpg",
+            md5 = "great_expectations_dickens",
+            source = "Direct PDF Archive",
+            description = "The story of the orphan Pip, tracing his growth and financial advancement through an anonymous benefactor.",
+            downloadUrl = "https://www.planetpublish.com/wp-content/uploads/2011/11/Great_Expectations_NT.pdf"
+        ),
+        Book(
+            id = "class_moby_dick",
+            title = "Moby-Dick; or, The Whale",
+            author = "Herman Melville",
+            publisher = "Harper & Brothers",
+            year = "1851",
+            pages = "635",
+            language = "English",
+            size = "2.8 MB",
+            extension = "pdf",
+            coverUrl = "https://www.gutenberg.org/cache/epub/2701/pg2701.cover.medium.jpg",
+            md5 = "moby_dick_melville",
+            source = "Direct PDF Archive",
+            description = "The obsessive quest of Ahab, captain of the whaling ship Pequod, for revenge against Moby Dick.",
+            downloadUrl = "https://www.planetpublish.com/wp-content/uploads/2011/11/Moby_Dick_NT.pdf"
+        ),
+        Book(
+            id = "class_two_cities",
+            title = "A Tale of Two Cities",
+            author = "Charles Dickens",
+            publisher = "Chapman & Hall",
+            year = "1859",
+            pages = "448",
+            language = "English",
+            size = "1.8 MB",
+            extension = "pdf",
+            coverUrl = "https://www.gutenberg.org/cache/epub/98/pg98.cover.medium.jpg",
+            md5 = "tale_two_cities_dickens",
+            source = "Direct PDF Archive",
+            description = "Set in London and Paris before and during the French Revolution, depicting the plight of the French peasantry.",
+            downloadUrl = "https://www.planetpublish.com/wp-content/uploads/2011/11/A_Tale_of_Two_Cities_NT.pdf"
+        ),
+        Book(
+            id = "class_emma",
+            title = "Emma",
+            author = "Jane Austen",
+            publisher = "John Murray",
+            year = "1815",
+            pages = "474",
+            language = "English",
+            size = "1.9 MB",
+            extension = "pdf",
+            coverUrl = "https://www.gutenberg.org/cache/epub/158/pg158.cover.medium.jpg",
+            md5 = "emma_austen_1815",
+            source = "Direct PDF Archive",
+            description = "A novel of youthful hubris and romantic misunderstandings involving the clever and privileged Emma Woodhouse.",
+            downloadUrl = "https://www.planetpublish.com/wp-content/uploads/2011/11/Emma_NT.pdf"
+        ),
+        Book(
+            id = "class_sense_sens",
+            title = "Sense and Sensibility",
+            author = "Jane Austen",
+            publisher = "Thomas Egerton",
+            year = "1811",
+            pages = "409",
+            language = "English",
+            size = "1.6 MB",
+            extension = "pdf",
+            coverUrl = "https://www.gutenberg.org/cache/epub/161/pg161.cover.medium.jpg",
+            md5 = "sense_sensibility_austen",
+            source = "Direct PDF Archive",
+            description = "Follows the Dashwood sisters, Elinor and Marianne, as they personify sense (good judgment) and sensibility (emotional impulse).",
+            downloadUrl = "https://www.planetpublish.com/wp-content/uploads/2011/11/Sense_and_Sensibility_NT.pdf"
+        ),
+        Book(
+            id = "class_metamorphosis",
+            title = "The Metamorphosis",
+            author = "Franz Kafka",
+            publisher = "Kurt Wolff Verlag",
+            year = "1915",
+            pages = "120",
+            language = "English",
+            size = "520 KB",
+            extension = "pdf",
+            coverUrl = "https://www.gutenberg.org/cache/epub/5200/pg5200.cover.medium.jpg",
+            md5 = "the_metamorphosis_kafka",
+            source = "Direct PDF Archive",
+            description = "Gregor Samsa wakes one morning to find himself transformed into a monstrous insect-like creature.",
+            downloadUrl = "https://www.planetpublish.com/wp-content/uploads/2011/11/The_Metamorphosis_NT.pdf"
+        )
+    )
+
     private val ALL_VERIFIED_BOOKS: List<Book> = (
-        FEATURED_CLASSICS + TOP_10_TODAY + SCIFI_SHELF + PHILOSOPHY_SHELF + MYSTERY_SHELF
+        FEATURED_CLASSICS + TOP_10_TODAY + SCIFI_SHELF + PHILOSOPHY_SHELF + MYSTERY_SHELF + MORE_CLASSICS
     ).distinctBy { it.id }
 
     suspend fun searchAllSources(query: String): List<Book> = withContext(Dispatchers.IO) {
@@ -346,107 +446,135 @@ object SearchEngine {
             return@withContext FEATURED_CLASSICS
         }
 
-        // 1. First check verified local direct archive
+        Log.d(TAG, "Search started for query length: ${cleanQ.length}")
+
+        // 1. First check verified local direct PDF archive
         val localMatches = ALL_VERIFIED_BOOKS.filter {
             it.title.contains(cleanQ, ignoreCase = true) || it.author.contains(cleanQ, ignoreCase = true)
         }
 
-        // 2. Query Libgen (libgen.la / libgen.li)
-        val libgenBooks = try {
-            searchLibgen(cleanQ)
+        // 2. Query Project Gutenberg via Gutendex open API
+        val remoteMatches = try {
+            searchProjectGutenberg(cleanQ)
         } catch (e: Exception) {
+            Log.w(TAG, "Remote Gutenberg search error", e)
             emptyList()
         }
 
-        val combined = (localMatches + libgenBooks).distinctBy {
+        val combined = (localMatches + remoteMatches).distinctBy {
             it.title.lowercase().replace(Regex("[^a-z0-9]"), "")
         }
 
-        if (combined.isNotEmpty()) combined else localMatches.ifEmpty { FEATURED_CLASSICS }
+        Log.d(TAG, "Search completed. Local: ${localMatches.size}, Remote: ${remoteMatches.size}, Total distinct: ${combined.size}")
+
+        // Return empty list if no matches found; do not fall back to unrelated samples
+        combined
     }
 
     /**
-     * Libgen Search Implementation (libgen.la / libgen.li)
-     * Queries real direct Libgen catalogs
+     * Project Gutenberg Search Implementation via Gutendex REST API
+     * Queries real verified public-domain literature catalogs
      */
-    private fun searchLibgen(query: String): List<Book> {
-        val hosts = listOf("https://libgen.la", "https://libgen.li")
-        for (host in hosts) {
-            try {
-                val url = "$host/index.php?req=${URLEncoder.encode(query, "UTF-8")}&res=25"
-                val request = Request.Builder()
-                    .url(url)
-                    .header("User-Agent", USER_AGENT)
-                    .build()
+    fun searchProjectGutenberg(query: String): List<Book> {
+        val encodedQuery = URLEncoder.encode(query, "UTF-8")
+        val url = "https://gutendex.com/books/?search=$encodedQuery"
 
-                client.newCall(request).execute().use { response ->
-                    if (!response.isSuccessful) return@use
-                    val html = response.body?.string() ?: return@use
-                    val doc = Jsoup.parse(html)
-                    val rows = doc.select("table tr")
-                    if (rows.size <= 1) return@use
+        val request = Request.Builder()
+            .url(url)
+            .header("User-Agent", USER_AGENT)
+            .header("Accept", "application/json")
+            .build()
 
-                    val list = mutableListOf<Book>()
-                    for (row in rows) {
-                        val tds = row.select("td")
-                        if (tds.size < 5) continue
-
-                        val titleLink = tds[0].select("a").first() ?: continue
-                        val rawTitle = titleLink.text().trim()
-                        if (rawTitle.isEmpty() || rawTitle.equals("Title", ignoreCase = true)) continue
-
-                        val author = if (tds.size > 1) tds[1].text().trim().ifEmpty { "Unknown Author" } else "Unknown Author"
-                        val publisher = if (tds.size > 2) tds[2].text().trim() else "Libgen Archive"
-                        val year = if (tds.size > 3) tds[3].text().trim() else ""
-                        val language = if (tds.size > 4) tds[4].text().trim().ifEmpty { "English" } else "English"
-                        val pages = if (tds.size > 5) tds[5].text().trim().ifEmpty { "150" } else "150"
-                        val size = if (tds.size > 6) tds[6].text().trim().ifEmpty { "2.5 MB" } else "2.5 MB"
-                        val ext = if (tds.size > 7) tds[7].text().trim().lowercase().ifEmpty { "pdf" } else "pdf"
-
-                        // Extract MD5 from links
-                        var md5 = ""
-                        val links = row.select("a[href*='ads.php?md5='], a[href*='md5=']")
-                        for (a in links) {
-                            val href = a.attr("href")
-                            val match = Regex("md5=([a-fA-F0-9]{32})").find(href)
-                            if (match != null) {
-                                md5 = match.groupValues[1].lowercase()
-                                break
-                            }
-                        }
-
-                        if (md5.isNotEmpty()) {
-                            list.add(
-                                Book(
-                                    id = "lg_$md5",
-                                    title = cleanBookTitle(rawTitle),
-                                    author = author,
-                                    publisher = publisher.ifEmpty { "Libgen Archive" },
-                                    year = year,
-                                    pages = pages,
-                                    language = language,
-                                    size = size,
-                                    extension = ext,
-                                    coverUrl = "$host/covers/${md5.take(4)}/${md5}-d.jpg",
-                                    md5 = md5,
-                                    source = "Libgen.la",
-                                    description = "Direct catalog match from libgen.la. Academic document and literature archive.",
-                                    downloadUrl = "$host/ads.php?md5=$md5"
-                                )
-                            )
-                        }
-                    }
-
-                    if (list.isNotEmpty()) {
-                        return list
-                    }
-                }
-            } catch (ignored: Exception) {}
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                Log.w(TAG, "Gutenberg search returned HTTP ${response.code}")
+                return emptyList()
+            }
+            val body = response.body?.string() ?: return emptyList()
+            return parseGutenbergResponse(body)
         }
-        return emptyList()
     }
 
-    private fun cleanBookTitle(title: String): String {
+    fun parseGutenbergResponse(jsonString: String): List<Book> {
+        val list = mutableListOf<Book>()
+        try {
+            val json = JSONObject(jsonString)
+            val results = json.optJSONArray("results") ?: return emptyList()
+
+            for (i in 0 until results.length()) {
+                val item = results.optJSONObject(i) ?: continue
+                val id = item.optInt("id", 0)
+                if (id == 0) continue
+
+                val rawTitle = item.optString("title", "").trim()
+                if (rawTitle.isEmpty()) continue
+
+                // Format Author
+                val authorsArr = item.optJSONArray("authors")
+                val author = if (authorsArr != null && authorsArr.length() > 0) {
+                    val authorObj = authorsArr.optJSONObject(0)
+                    val rawName = authorObj?.optString("name", "Unknown Author") ?: "Unknown Author"
+                    formatAuthorName(rawName)
+                } else {
+                    "Unknown Author"
+                }
+
+                // Formats & Direct Download URLs
+                val formatsObj = item.optJSONObject("formats")
+                val coverUrl = formatsObj?.optString("image/jpeg")?.ifEmpty { null }
+                val epubUrl = formatsObj?.optString("application/epub+zip")
+                val textUrl = formatsObj?.optString("text/plain; charset=utf-8")
+                val htmlUrl = formatsObj?.optString("text/html")
+                val downloadUrl = epubUrl ?: textUrl ?: htmlUrl
+
+                // Languages
+                val langArr = item.optJSONArray("languages")
+                val language = if (langArr != null && langArr.length() > 0) {
+                    val langCode = langArr.optString(0, "en")
+                    if (langCode == "en") "English" else langCode.uppercase()
+                } else "English"
+
+                // Summaries
+                val summariesArr = item.optJSONArray("summaries")
+                val summary = if (summariesArr != null && summariesArr.length() > 0) {
+                    summariesArr.optString(0)
+                } else null
+
+                list.add(
+                    Book(
+                        id = "guten_$id",
+                        title = cleanBookTitle(rawTitle),
+                        author = author,
+                        publisher = "Project Gutenberg",
+                        year = "Public Domain",
+                        pages = "Complete Edition",
+                        language = language,
+                        size = "Verified",
+                        extension = if (epubUrl != null) "epub" else "pdf",
+                        coverUrl = coverUrl,
+                        md5 = "gutenberg_archive_$id",
+                        source = "Project Gutenberg",
+                        description = summary ?: "Verified public-domain literary edition from Project Gutenberg archives.",
+                        downloadUrl = downloadUrl
+                    )
+                )
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to parse Gutenberg response", e)
+        }
+        return list
+    }
+
+    fun formatAuthorName(raw: String): String {
+        return if (raw.contains(",")) {
+            val parts = raw.split(",").map { it.trim() }
+            if (parts.size >= 2) "${parts[1]} ${parts[0]}".trim() else raw
+        } else {
+            raw
+        }
+    }
+
+    fun cleanBookTitle(title: String): String {
         return title.replace(Regex("\\[.*?\\]"), "").replace(Regex("\\s+"), " ").trim()
     }
 }

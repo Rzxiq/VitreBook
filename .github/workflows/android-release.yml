@@ -70,11 +70,11 @@ jobs:
               print('Generated all launcher icon densities from crystal app logo.')
           "
 
-      - name: Build Native Release APK with Gradle
+      - name: Build and Test Native Release APK with Gradle
         run: |
           gradle wrapper
           chmod +x ./gradlew
-          ./gradlew assembleRelease --no-daemon --stacktrace
+          ./gradlew testReleaseUnitTest assembleRelease --no-daemon --stacktrace
 
       - name: Locate and Package Release APK
         id: find_apk
