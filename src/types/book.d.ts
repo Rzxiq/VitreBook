@@ -39,3 +39,16 @@ export interface DownloadProgress {
   percentage: number;
   speedBytesPerSec: number;
 }
+
+export interface MirrorConfig {
+  id: string;
+  name: string;
+  baseUrl: string;
+  resolverBaseUrl: string;
+  isPrimary?: boolean;
+}
+
+export interface RemoteConfigResponse {
+  version: string;
+  activeMirrors: MirrorConfig[];
+}

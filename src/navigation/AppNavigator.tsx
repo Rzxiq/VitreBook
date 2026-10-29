@@ -4,6 +4,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
+import { LiquidDemoScreen } from '../screens/LiquidDemoScreen';
 import { SearchScreen } from '../screens/SearchScreen';
 import { LibraryScreen } from '../screens/LibraryScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
@@ -18,6 +19,7 @@ export type RootStackParamList = {
 };
 
 export type BottomTabParamList = {
+  LiquidTab: undefined;
   SearchTab: undefined;
   LibraryTab: undefined;
   SettingsTab: undefined;
@@ -27,7 +29,8 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<BottomTabParamList>();
 
 const TabBarIcon = ({ label, focused }: { label: string; focused: boolean }) => {
-  let icon = '🔍';
+  let icon = '✦';
+  if (label === 'Explore') icon = '🔍';
   if (label === 'Library') icon = '📚';
   if (label === 'Settings') icon = '⚙️';
 
@@ -45,6 +48,14 @@ function BottomTabs() {
       }}
     >
       <Tab.Screen
+        name="LiquidTab"
+        component={LiquidDemoScreen}
+        options={{
+          tabBarLabel: 'Liquid',
+          tabBarIcon: ({ focused }) => <TabBarIcon label="Liquid" focused={focused} />,
+        }}
+      />
+      <Tab.Screen
         name="SearchTab"
         component={SearchScreen}
         options={{
@@ -56,7 +67,7 @@ function BottomTabs() {
         name="LibraryTab"
         component={LibraryScreen}
         options={{
-          tabBarLabel: 'My Library',
+          tabBarLabel: 'Library',
           tabBarIcon: ({ focused }) => <TabBarIcon label="Library" focused={focused} />,
         }}
       />
