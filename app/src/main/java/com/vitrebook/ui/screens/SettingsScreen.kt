@@ -182,7 +182,7 @@ fun SettingsScreen(
                     )
 
                     Text(
-                        text = "Version 2.0.0 (Native Android & Material 3)",
+                        text = "Version 2.1.0 (Native Android & Material 3)",
                         color = TextMuted,
                         fontSize = 12.sp
                     )

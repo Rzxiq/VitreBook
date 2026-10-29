@@ -8,6 +8,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import org.jsoup.Jsoup
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
@@ -15,8 +16,10 @@ import java.util.concurrent.TimeUnit
 
 class DownloadService(private val context: Context) {
     private val client = OkHttpClient.Builder()
-        .connectTimeout(15, TimeUnit.SECONDS)
-        .readTimeout(30, TimeUnit.SECONDS)
+        .connectTimeout(20, TimeUnit.SECONDS)
+        .readTimeout(60, TimeUnit.SECONDS)
+        .followRedirects(true)
+        .followSslRedirects(true)
         .build()
 
     private val fallbackPdfUrl = "https://raw.githubusercontent.com/mozilla/pdf.js/master/web/compressed.tracemonkey-pldi-09.pdf"
@@ -26,18 +29,20 @@ class DownloadService(private val context: Context) {
         onProgress: (DownloadProgress) -> Unit
     ): DownloadedBook = withContext(Dispatchers.IO) {
         val booksDir = File(context.filesDir, "books").apply { mkdirs() }
-        val safeName = book.title.replace(Regex("[^a-zA-Z0-9_]"), "_").take(40)
+        val safeName = book.title.replace(Regex("[^a-zA-Z0-9_]"), "_").take(36)
         val targetFile = File(booksDir, "${safeName}_${book.md5.take(8)}.pdf")
 
-        val targetUrl = book.downloadUrl ?: fallbackPdfUrl
+        // 1. Resolve direct download link (handles libgen.la ads.php resolver)
+        val directUrl = resolveDirectUrl(book)
 
-        var success = downloadToFile(book.id, targetUrl, targetFile, onProgress)
+        // 2. Perform stream download
+        var success = downloadToFile(book.id, directUrl, targetFile, onProgress, book.downloadUrl)
 
-        // Validate file integrity
+        // 3. Validation: Verify magic bytes
         if (!success || !isValidPdf(targetFile)) {
-            // Fallback to verified multi-page public PDF
-            targetFile.delete()
-            success = downloadToFile(book.id, fallbackPdfUrl, targetFile, onProgress)
+            try { targetFile.delete() } catch (ignored: Exception) {}
+            // Fallback to verified multi-page public copy
+            success = downloadToFile(book.id, fallbackPdfUrl, targetFile, onProgress, null)
         }
 
         DownloadedBook(
@@ -56,26 +61,81 @@ class DownloadService(private val context: Context) {
         )
     }
 
-    private fun downloadToFile(
+    /**
+     * Resolves direct download link for Libgen (ads.php -> get.php?md5=...&key=...)
+     */
+    private fun resolveDirectUrl(book: Book): String {
+        val url = book.downloadUrl ?: return fallbackPdfUrl
+
+        if (url.contains("ads.php") || book.source.contains("Libgen", ignoreCase = true)) {
+            val resolverUrls = listOf(
+                url,
+                "https://libgen.la/ads.php?md5=${book.md5}",
+                "https://libgen.li/ads.php?md5=${book.md5}"
+            )
+
+            for (resolver in resolverUrls) {
+                try {
+                    val request = Request.Builder()
+                        .url(resolver)
+                        .header("User-Agent", SearchEngine.USER_AGENT)
+                        .build()
+
+                    client.newCall(request).execute().use { response ->
+                        if (!response.isSuccessful) return@use
+                        val html = response.body?.string() ?: return@use
+                        val doc = Jsoup.parse(html)
+
+                        // 1. Find anchor with "GET" text
+                        val getLink = doc.select("a:contains(GET)").first()
+                        if (getLink != null) {
+                            val href = getLink.attr("href")
+                            if (href.isNotEmpty()) {
+                                return if (href.startsWith("http")) href else "https://libgen.la/$href"
+                            }
+                        }
+
+                        // 2. Find any get.php link
+                        val altLink = doc.select("a[href*='get.php']").first()
+                        if (altLink != null) {
+                            val href = altLink.attr("href")
+                            if (href.isNotEmpty()) {
+                                return if (href.startsWith("http")) href else "https://libgen.la/$href"
+                            }
+                        }
+                    }
+                } catch (ignored: Exception) {}
+            }
+        }
+
+        return url
+    }
+
+    private suspend fun downloadToFile(
         bookId: String,
         url: String,
         file: File,
-        onProgress: (DownloadProgress) -> Unit
+        onProgress: (DownloadProgress) -> Unit,
+        referer: String?
     ): Boolean {
         try {
-            val request = Request.Builder()
+            val requestBuilder = Request.Builder()
                 .url(url)
-                .header("User-Agent", "Mozilla/5.0")
-                .build()
+                .header("User-Agent", SearchEngine.USER_AGENT)
+                .header("Accept", "application/pdf,application/octet-stream,*/*")
 
-            client.newCall(request).execute().use { response ->
+            if (!referer.isNullOrEmpty()) {
+                requestBuilder.header("Referer", referer)
+            }
+
+            client.newCall(requestBuilder.build()).execute().use { response ->
                 if (!response.isSuccessful) return false
                 val body = response.body ?: return false
                 val totalBytes = body.contentLength()
 
                 val inputStream: InputStream = body.byteStream()
                 val outputStream = FileOutputStream(file)
-                val buffer = ByteArray(8 * 1024)
+                val buffer = ByteArray(16 * 1024)
                 var bytesWritten: Long = 0
                 var read: Int
                 var lastTime = System.currentTimeMillis()
@@ -87,24 +147,26 @@ class DownloadService(private val context: Context) {
 
                     val now = System.currentTimeMillis()
                     val deltaSec = (now - lastTime) / 1000.0
-                    val speed = if (deltaSec > 0.3) {
+                    val speed = if (deltaSec > 0.4) {
                         val speedBytes = ((bytesWritten - lastBytes) / deltaSec).toLong()
                         lastBytes = bytesWritten
                         lastTime = now
                         formatSpeed(speedBytes)
                     } else "Downloading..."
 
-                    val percentage = if (totalBytes > 0) ((bytesWritten * 100) / totalBytes).toInt() else 50
+                    val percentage = if (totalBytes > 0) ((bytesWritten * 100) / totalBytes).toInt().coerceIn(0, 100) else 50
 
-                    onProgress(
-                        DownloadProgress(
-                            bookId = bookId,
-                            bytesWritten = bytesWritten,
-                            totalBytes = totalBytes,
-                            percentage = percentage,
-                            speedFormatted = speed
-                        )
+                    val prog = DownloadProgress(
+                        bookId = bookId,
+                        bytesWritten = bytesWritten,
+                        totalBytes = totalBytes,
+                        percentage = percentage,
+                        speedFormatted = speed
                     )
+
+                    withContext(Dispatchers.Main) {
+                        onProgress(prog)
+                    }
                 }
 
                 outputStream.flush()

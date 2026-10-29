@@ -63,9 +63,11 @@ fun BookCard(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = "📖",
-                            fontSize = 24.sp
+                        Icon(
+                            imageVector = androidx.compose.material.icons.Icons.Default.Book,
+                            contentDescription = null,
+                            tint = TextMuted,
+                            modifier = Modifier.size(28.dp)
                         )
                     }
                 }
@@ -149,17 +151,24 @@ fun BookCard(
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Text(
-                        text = "📦 ${book.size}",
+                        text = book.size,
                         color = TextMuted,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        text = "•",
+                        color = ObsidianBorder,
                         fontSize = 11.sp
                     )
                     Text(
-                        text = "📄 ${book.pages}p",
+                        text = "${book.pages} pages",
                         color = TextMuted,
-                        fontSize = 11.sp
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium
                     )
                 }
             }

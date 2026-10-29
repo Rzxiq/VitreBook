@@ -13,6 +13,7 @@ import java.io.File
 class LibraryManager(private val context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences("vitrebook_library", Context.MODE_PRIVATE)
     private val gson = Gson()
+    private val lock = Any()
 
     private val _booksFlow = MutableStateFlow<List<DownloadedBook>>(emptyList())
     val booksFlow: StateFlow<List<DownloadedBook>> = _booksFlow.asStateFlow()
@@ -21,7 +22,7 @@ class LibraryManager(private val context: Context) {
         loadBooks()
     }
 
-    fun loadBooks() {
+    fun loadBooks() = synchronized(lock) {
         val json = prefs.getString("books_json", null)
         if (json.isNullOrEmpty()) {
             _booksFlow.value = emptyList()
@@ -36,13 +37,13 @@ class LibraryManager(private val context: Context) {
         _booksFlow.value = list.sortedByDescending { it.downloadedAt }
     }
 
-    private fun persistBooks(list: List<DownloadedBook>) {
+    private fun persistBooks(list: List<DownloadedBook>) = synchronized(lock) {
         val json = gson.toJson(list)
         prefs.edit().putString("books_json", json).apply()
         _booksFlow.value = list.sortedByDescending { it.downloadedAt }
     }
 
-    fun saveBook(book: DownloadedBook) {
+    fun saveBook(book: DownloadedBook) = synchronized(lock) {
         val current = _booksFlow.value.toMutableList()
         val index = current.indexOfFirst { it.md5 == book.md5 }
         if (index >= 0) {
@@ -53,11 +54,11 @@ class LibraryManager(private val context: Context) {
         persistBooks(current)
     }
 
-    fun getBookByMd5(md5: String): DownloadedBook? {
+    fun getBookByMd5(md5: String): DownloadedBook? = synchronized(lock) {
         return _booksFlow.value.find { it.md5 == md5 }
     }
 
-    fun updateReadingProgress(md5: String, page: Int, totalPages: Int) {
+    fun updateReadingProgress(md5: String, page: Int, totalPages: Int) = synchronized(lock) {
         val current = _booksFlow.value.toMutableList()
         val index = current.indexOfFirst { it.md5 == md5 }
         if (index >= 0) {
@@ -70,7 +71,7 @@ class LibraryManager(private val context: Context) {
         }
     }
 
-    fun deleteBook(md5: String) {
+    fun deleteBook(md5: String) = synchronized(lock) {
         val current = _booksFlow.value.toMutableList()
         val book = current.find { it.md5 == md5 }
         if (book != null) {
@@ -85,7 +86,7 @@ class LibraryManager(private val context: Context) {
         }
     }
 
-    fun clearAll() {
+    fun clearAll() = synchronized(lock) {
         _booksFlow.value.forEach { book ->
             try {
                 val file = File(book.localFilePath)

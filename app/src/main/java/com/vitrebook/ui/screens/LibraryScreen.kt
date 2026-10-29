@@ -111,7 +111,14 @@ fun LibraryScreen(
                         border = androidx.compose.foundation.BorderStroke(1.dp, ObsidianBorder),
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                     ) {
-                        Text(text = "⚡ Starter Book", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Icon(
+                            imageVector = androidx.compose.material.icons.Icons.Default.Bolt,
+                            contentDescription = null,
+                            tint = SecondaryEmerald,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(text = "Starter Book", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -133,7 +140,12 @@ fun LibraryScreen(
                                 .padding(32.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Text(text = "📚", fontSize = 48.sp)
+                            Icon(
+                                imageVector = androidx.compose.material.icons.Icons.Default.LocalLibrary,
+                                contentDescription = null,
+                                tint = TextMuted,
+                                modifier = Modifier.size(54.dp)
+                            )
                             Spacer(modifier = Modifier.height(14.dp))
                             Text(
                                 text = "Your Library is Empty",
@@ -192,7 +204,12 @@ fun LibraryScreen(
                                     )
                                 } else {
                                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                        Text(text = "📖", fontSize = 24.sp)
+                                        Icon(
+                                            imageVector = androidx.compose.material.icons.Icons.Default.Book,
+                                            contentDescription = null,
+                                            tint = TextMuted,
+                                            modifier = Modifier.size(24.dp)
+                                        )
                                     }
                                 }
                             }

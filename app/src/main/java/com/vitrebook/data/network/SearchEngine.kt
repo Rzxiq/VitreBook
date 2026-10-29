@@ -10,15 +10,17 @@ import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.jsoup.Jsoup
+import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 
 object SearchEngine {
     private val client = OkHttpClient.Builder()
-        .connectTimeout(10, TimeUnit.SECONDS)
-        .readTimeout(10, TimeUnit.SECONDS)
+        .connectTimeout(12, TimeUnit.SECONDS)
+        .readTimeout(15, TimeUnit.SECONDS)
+        .followRedirects(true)
         .build()
 
-    private const val USER_AGENT = "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36"
+    const val USER_AGENT = "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36"
     private const val SAMPLE_PDF = "https://raw.githubusercontent.com/mozilla/pdf.js/master/web/compressed.tracemonkey-pldi-09.pdf"
 
     val FEATURED_CLASSICS = listOf(
@@ -127,13 +129,17 @@ object SearchEngine {
         }
 
         coroutineScope {
+            val libgenDeferred = async { searchLibgen(cleanQ) }
             val openLibraryDeferred = async { searchOpenLibrary(cleanQ) }
             val gutenbergDeferred = async { searchGutenberg(cleanQ) }
 
+            val libgenBooks = try { libgenDeferred.await() } catch (e: Exception) { emptyList() }
             val openLibBooks = try { openLibraryDeferred.await() } catch (e: Exception) { emptyList() }
             val gutenbergBooks = try { gutenbergDeferred.await() } catch (e: Exception) { emptyList() }
 
-            val combined = (openLibBooks + gutenbergBooks).distinctBy { it.title.lowercase().replace(Regex("[^a-z0-9]"), "") }
+            val combined = (libgenBooks + openLibBooks + gutenbergBooks).distinctBy {
+                it.title.lowercase().replace(Regex("[^a-z0-9]"), "")
+            }
 
             if (combined.isEmpty()) {
                 val matched = FEATURED_CLASSICS.filter {
@@ -146,8 +152,92 @@ object SearchEngine {
         }
     }
 
+    /**
+     * Libgen Search Implementation (libgen.la / libgen.li)
+     */
+    private fun searchLibgen(query: String): List<Book> {
+        val hosts = listOf("https://libgen.la", "https://libgen.li")
+        for (host in hosts) {
+            try {
+                val url = "$host/index.php?req=${URLEncoder.encode(query, "UTF-8")}&res=25"
+                val request = Request.Builder()
+                    .url(url)
+                    .header("User-Agent", USER_AGENT)
+                    .build()
+
+                client.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) return@use
+                    val html = response.body?.string() ?: return@use
+                    val doc = Jsoup.parse(html)
+                    val rows = doc.select("table tr")
+                    if (rows.size <= 1) return@use
+
+                    val list = mutableListOf<Book>()
+                    for (row in rows) {
+                        val tds = row.select("td")
+                        if (tds.size < 5) continue
+
+                        val titleLink = tds[0].select("a").first() ?: continue
+                        val rawTitle = titleLink.text().trim()
+                        if (rawTitle.isEmpty() || rawTitle.equals("Title", ignoreCase = true)) continue
+
+                        val author = if (tds.size > 1) tds[1].text().trim().ifEmpty { "Unknown Author" } else "Unknown Author"
+                        val publisher = if (tds.size > 2) tds[2].text().trim() else "Libgen Archive"
+                        val year = if (tds.size > 3) tds[3].text().trim() else ""
+                        val language = if (tds.size > 4) tds[4].text().trim().ifEmpty { "English" } else "English"
+                        val pages = if (tds.size > 5) tds[5].text().trim().ifEmpty { "150" } else "150"
+                        val size = if (tds.size > 6) tds[6].text().trim().ifEmpty { "2.5 MB" } else "2.5 MB"
+                        val ext = if (tds.size > 7) tds[7].text().trim().lowercase().ifEmpty { "pdf" } else "pdf"
+
+                        // Extract MD5 from links
+                        var md5 = ""
+                        val links = row.select("a[href*='ads.php?md5='], a[href*='md5=']")
+                        for (a in links) {
+                            val href = a.attr("href")
+                            val match = Regex("md5=([a-fA-F0-9]{32})").find(href)
+                            if (match != null) {
+                                md5 = match.groupValues[1].lowercase()
+                                break
+                            }
+                        }
+
+                        if (md5.isNotEmpty()) {
+                            list.add(
+                                Book(
+                                    id = "lg_$md5",
+                                    title = cleanBookTitle(rawTitle),
+                                    author = author,
+                                    publisher = publisher.ifEmpty { "Libgen Archive" },
+                                    year = year,
+                                    pages = pages,
+                                    language = language,
+                                    size = size,
+                                    extension = ext,
+                                    coverUrl = "$host/covers/${md5.take(4)}/${md5}-d.jpg",
+                                    md5 = md5,
+                                    source = "Libgen.la",
+                                    description = "Direct catalog match from libgen.la. High-fidelity academic document with mirror resolver.",
+                                    downloadUrl = "$host/ads.php?md5=$md5"
+                                )
+                            )
+                        }
+                    }
+
+                    if (list.isNotEmpty()) {
+                        return list
+                    }
+                }
+            } catch (ignored: Exception) {}
+        }
+        return emptyList()
+    }
+
+    private fun cleanBookTitle(title: String): String {
+        return title.replace(Regex("\\[.*?\\]"), "").replace(Regex("\\s+"), " ").trim()
+    }
+
     private fun searchOpenLibrary(query: String): List<Book> {
-        val url = "https://openlibrary.org/search.json?q=${java.net.URLEncoder.encode(query, "UTF-8")}&limit=15"
+        val url = "https://openlibrary.org/search.json?q=${URLEncoder.encode(query, "UTF-8")}&limit=15"
         val request = Request.Builder()
             .url(url)
             .header("User-Agent", USER_AGENT)
@@ -203,7 +293,7 @@ object SearchEngine {
     }
 
     private fun searchGutenberg(query: String): List<Book> {
-        val url = "https://www.gutenberg.org/ebooks/search/?query=${java.net.URLEncoder.encode(query, "UTF-8")}"
+        val url = "https://www.gutenberg.org/ebooks/search/?query=${URLEncoder.encode(query, "UTF-8")}"
         val request = Request.Builder()
             .url(url)
             .header("User-Agent", USER_AGENT)

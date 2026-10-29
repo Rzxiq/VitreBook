@@ -101,7 +101,12 @@ fun BookDetailScreen(
                         modifier = Modifier.fillMaxSize()
                     )
                 } else {
-                    Text(text = "📖", fontSize = 48.sp)
+                    Icon(
+                        imageVector = androidx.compose.material.icons.Icons.Default.Book,
+                        contentDescription = null,
+                        tint = TextMuted,
+                        modifier = Modifier.size(56.dp)
+                    )
                 }
             }
 

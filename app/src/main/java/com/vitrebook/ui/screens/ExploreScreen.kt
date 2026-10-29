@@ -72,7 +72,12 @@ fun ExploreScreen(
                             border = androidx.compose.foundation.BorderStroke(1.dp, ObsidianBorder)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
-                                Text(text = "📚", fontSize = 22.sp)
+                                Icon(
+                                    imageVector = androidx.compose.material.icons.Icons.Default.LocalLibrary,
+                                    contentDescription = null,
+                                    tint = PrimaryRuby,
+                                    modifier = Modifier.size(22.dp)
+                                )
                             }
                         }
 

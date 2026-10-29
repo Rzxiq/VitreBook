@@ -4,11 +4,12 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -65,42 +66,54 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        // Main Tabs Scaffold with Material 3 NavigationBar
+                        // Main Tabs Scaffold with Translucent Glass NavigationBar (No Emoji)
                         else -> {
                             Scaffold(
                                 containerColor = ObsidianBackground,
                                 bottomBar = {
-                                    NavigationBar(
-                                        containerColor = ObsidianBackground,
-                                        tonalElevation = 0.dp
+                                    Surface(
+                                        color = ObsidianSurface.copy(alpha = 0.92f),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 14.dp, vertical = 8.dp)
+                                            .clip(RoundedCornerShape(24.dp)),
+                                        border = androidx.compose.foundation.BorderStroke(1.dp, ObsidianBorder),
+                                        shadowElevation = 8.dp
                                     ) {
-                                        val items = listOf(Screen.Explore, Screen.Library, Screen.Settings)
-                                        items.forEach { screen ->
-                                            val isSelected = currentTab == screen
-                                            NavigationBarItem(
-                                                selected = isSelected,
-                                                onClick = { currentTab = screen },
-                                                icon = {
-                                                    Text(
-                                                        text = screen.icon,
-                                                        fontSize = if (isSelected) 20.sp else 18.sp
+                                        NavigationBar(
+                                            containerColor = androidx.compose.ui.graphics.Color.Transparent,
+                                            tonalElevation = 0.dp,
+                                            modifier = Modifier.height(64.dp)
+                                        ) {
+                                            val items = listOf(Screen.Explore, Screen.Library, Screen.Settings)
+                                            items.forEach { screen ->
+                                                val isSelected = currentTab == screen
+                                                NavigationBarItem(
+                                                    selected = isSelected,
+                                                    onClick = { currentTab = screen },
+                                                    icon = {
+                                                        Icon(
+                                                            imageVector = screen.icon,
+                                                            contentDescription = screen.title,
+                                                            modifier = Modifier.size(22.dp)
+                                                        )
+                                                    },
+                                                    label = {
+                                                        Text(
+                                                            text = screen.title,
+                                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                                            fontSize = 11.sp
+                                                        )
+                                                    },
+                                                    colors = NavigationBarItemDefaults.colors(
+                                                        selectedIconColor = TextPrimary,
+                                                        selectedTextColor = TextPrimary,
+                                                        unselectedIconColor = TextMuted,
+                                                        unselectedTextColor = TextMuted,
+                                                        indicatorColor = ObsidianSurfaceElevated
                                                     )
-                                                },
-                                                label = {
-                                                    Text(
-                                                        text = screen.title,
-                                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                                        fontSize = 11.sp
-                                                    )
-                                                },
-                                                colors = NavigationBarItemDefaults.colors(
-                                                    selectedIconColor = TextPrimary,
-                                                    selectedTextColor = TextPrimary,
-                                                    unselectedIconColor = TextMuted,
-                                                    unselectedTextColor = TextMuted,
-                                                    indicatorColor = ObsidianSurfaceElevated
                                                 )
-                                            )
+                                            }
                                         }
                                     }
                                 }
