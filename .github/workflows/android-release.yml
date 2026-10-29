@@ -1,4 +1,4 @@
-name: Android Build & Release APK
+name: Android Native Build & Release APK
 
 on:
   push:
@@ -13,21 +13,12 @@ permissions:
 
 jobs:
   build:
-    name: Build Android APK
+    name: Build Native Android APK
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Source Code
         uses: actions/checkout@v4
-
-      - name: Setup Node.js 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Install NPM Dependencies
-        run: |
-          npm install --legacy-peer-deps
 
       - name: Setup Java JDK 17
         uses: actions/setup-java@v4
@@ -38,20 +29,29 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
         with:
-          gradle-version: 8.6
+          gradle-version: 8.5
 
       - name: Accept Android SDK Licenses
         run: |
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses 2>/dev/null || yes | sdkmanager --licenses 2>/dev/null || true
 
-      - name: Generate App Icons from Logo
+      - name: Generate Release & Debug Keystore
+        run: |
+          if [ ! -f "app/debug.keystore" ]; then
+            keytool -genkey -v -keystore app/debug.keystore \
+              -storepass android -alias androiddebugkey -keypass android \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -dname "CN=VitreBook,O=OpenSource,C=US"
+          fi
+
+      - name: Generate App Launcher Icons
         run: |
           python3 -m pip install --upgrade pip pillow
           python3 -c "
           from PIL import Image
           import os
 
-          logo_path = 'src/assets/logo.jpg'
+          logo_path = 'app/src/main/res/drawable/app_logo.jpg'
           if os.path.exists(logo_path):
               img = Image.open(logo_path).convert('RGBA')
               densities = {
@@ -62,52 +62,35 @@ jobs:
                   'mipmap-xxxhdpi': 192
               }
               for folder, size in densities.items():
-                  target_dir = os.path.join('android/app/src/main/res', folder)
+                  target_dir = os.path.join('app/src/main/res', folder)
                   os.makedirs(target_dir, exist_ok=True)
                   resized = img.resize((size, size), Image.Resampling.LANCZOS)
                   resized.save(os.path.join(target_dir, 'ic_launcher.png'), 'PNG')
                   resized.save(os.path.join(target_dir, 'ic_launcher_round.png'), 'PNG')
-              print('Successfully generated launcher icon assets for all densities.')
+              print('Generated all launcher icon densities from crystal app logo.')
           "
 
-      - name: Generate Fallback Release/Debug Keystore
+      - name: Build Native Release APK with Gradle
         run: |
-          if [ ! -f "android/app/debug.keystore" ]; then
-            keytool -genkey -v -keystore android/app/debug.keystore \
-              -storepass android -alias androiddebugkey -keypass android \
-              -keyalg RSA -keysize 2048 -validity 10000 \
-              -dname "CN=VitreBook,O=OpenSource,C=US"
-          fi
-
-      - name: Generate Gradle Wrapper & Build Release APK
-        run: |
-          cd android
           gradle wrapper
           chmod +x ./gradlew
           ./gradlew assembleRelease --no-daemon --stacktrace
 
-      - name: Locate and Package Built APKs
+      - name: Locate and Package Release APK
         id: find_apk
         run: |
           mkdir -p build-output
-          # Look for arm64-v8a or universal APK
-          find android/app/build/outputs/apk/release/ -name "*.apk" -exec cp {} build-output/ \;
+          find app/build/outputs/apk/release/ -name "*.apk" -exec cp {} build-output/ \;
           ls -la build-output/
 
-          PRIMARY_APK=$(find build-output/ -name "*arm64*.apk" | head -n 1)
-          if [ -z "$PRIMARY_APK" ]; then
-            PRIMARY_APK=$(find build-output/ -name "*universal*.apk" | head -n 1)
-          fi
-          if [ -z "$PRIMARY_APK" ]; then
-            PRIMARY_APK=$(find build-output/ -name "*.apk" | head -n 1)
-          fi
+          PRIMARY_APK=$(find build-output/ -name "*.apk" | head -n 1)
           echo "PRIMARY_APK=$PRIMARY_APK" >> $GITHUB_ENV
           echo "Found primary APK: $PRIMARY_APK"
 
       - name: Upload APK as Workflow Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: VitreBook-Android-APKs
+          name: VitreBook-Native-Android-APK
           path: build-output/*.apk
           retention-days: 30
 

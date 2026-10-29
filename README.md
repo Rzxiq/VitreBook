@@ -1,87 +1,58 @@
-# VitreBook 📖
+# VitreBook (Android Native)
 
-> **Standalone, Sideloaded Android E-Book Reader & Client-Side Catalog Indexer**
-> Built with React Native (TypeScript), Cheerio, Zustand, MMKV, and GitHub Actions CI/CD.
-
----
-
-## 🌟 Highlights & Architecture
-
-- **Zero-Backend Architecture ($0 Server Cost):** All catalog queries and HTML table parsing run directly on the client device using `axios` and `cheerio`.
-- **Dynamic Mirror Discovery:** Queries a remote GitHub Gist configuration on startup to obtain working mirrors (`libgen.is`, `libgen.rs`, `libgen.li`, etc.) and fallback resolvers (`library.lol/main/{MD5}`, `libgen.li/ads.php?md5={MD5}`).
-- **Two-Stage Indexing & Direct File Resolution:**
-  1. **Search Query:** Scrapes HTML tables to extract Book Title, Author, Year, Language, Size, Extension, Cover Thumbnail, and the 32-character **MD5 Hash**.
-  2. **Direct Link Resolver:** Evaluates resolver mirror landing pages and extracts direct `.pdf` and `.epub` links.
-- **Offline Storage & Download Stream:** Streams files to local app storage using `react-native-blob-util` with real-time percentage progress and speed calculation.
-- **Embedded PDF Reader:** In-app reader built on `react-native-pdf` featuring dark/night reading mode, page jump controls, and auto-saving `lastReadPage` to `react-native-mmkv`.
-- **Automated CI/CD:** Push version tags (`v1.0.0`) to trigger GitHub Actions to build unsigned/signed `arm64-v8a` APKs and attach them directly to GitHub Releases.
-- **Self-Updating:** In-app update banner checks `api.github.com/repos/Rzxiq/VitreBook/releases/latest` and prompts to install new APK versions.
+> Fully native Android E-Book Reader and Public-Domain Document Indexer built with **Kotlin, Jetpack Compose, and Material 3**.
 
 ---
 
-## 📂 Project Structure
+## Architecture & Tech Stack
 
-```
-VitreBook/
-├── .github/
-│   └── workflows/
-│       └── android-release.yml       # Automated APK build & GitHub Release pipeline
-├── android/                          # Native Android Gradle configuration (arm64-v8a ABI splits)
-├── src/
-│   ├── api/
-│   │   ├── configService.ts          # Remote mirror discovery via Gist JSON
-│   │   ├── httpClient.ts             # Axios instance with custom mobile User-Agent
-│   │   └── scrapers/
-│   │       ├── index.ts              # Unified Scraper & Catalog manager
-│   │       ├── libgenScraper.ts      # HTML table parser & MD5 extractor
-│   │       └── mirrorResolver.ts     # Direct file URL resolver
-│   ├── components/
-│   │   ├── BookCard.tsx              # Card showing cover, metadata, and format badges
-│   │   ├── DownloadProgressModal.tsx # Real-time speed and progress modal
-│   │   ├── MirrorSelectorModal.tsx   # Domain switcher & custom mirror input
-│   │   └── UpdateBanner.tsx          # In-app GitHub release update detector
-│   ├── navigation/
-│   │   └── AppNavigator.tsx          # Bottom tabs + Root native stack navigation
-│   ├── screens/
-│   │   ├── SearchScreen.tsx          # Catalog search with format filter chips
-│   │   ├── BookDetailScreen.tsx      # Metadata breakdown, MD5 info, & download CTA
-│   │   ├── LibraryScreen.tsx         # Offline downloaded book grid with % read
-│   │   ├── PdfReaderScreen.tsx       # Dark mode PDF reader with auto page saving
-│   │   └── SettingsScreen.tsx        # Mirror configuration, cache management, & updater
-│   ├── services/
-│   │   ├── downloadManager.ts        # Stream manager & filesystem deletion
-│   │   └── updateService.ts          # Checks GitHub Releases API for new APKs
-│   ├── store/
-│   │   ├── useLibraryStore.ts        # Fast local storage via Zustand + MMKV
-│   │   └── useSettingsStore.ts       # Mirror and reader preferences via MMKV
-│   ├── types/
-│   │   └── book.d.ts                 # Full TypeScript interfaces
-│   └── utils/
-│       └── fileHelpers.ts            # Bytes formatting and filename sanitization
-├── App.tsx                           # Main entry component
-├── index.js                          # React Native registerComponent
-├── package.json
-└── tsconfig.json
-```
+- **Platform:** Native Android (Kotlin)
+- **UI Toolkit:** Jetpack Compose + Material 3 (`androidx.compose.material3`)
+- **Theme:** Dark Obsidian Material You palette (`#09090B` background, `#121215` surface, `#27272A` borders)
+- **Image Pipeline:** Coil (`io.coil-kt:coil-compose`)
+- **Networking & Scrapers:** OkHttp + Jsoup + Gson
+- **Built-in PDF Viewer:** Native `android.graphics.pdf.PdfRenderer` (zero external C++ dependencies, 60 FPS hardware acceleration)
+- **State & Storage:** Kotlin Coroutines `StateFlow` + Android `SharedPreferences`
 
 ---
 
-## 🚀 Building & Sideloading
+## Core Features
 
-### Automated CI/CD (Recommended)
-1. Push any commit to `main` to build an APK artifact.
-2. Push a Git tag to create a public release with the `.apk` attached:
-   ```bash
-   git tag v1.0.0
-   git push origin v1.0.0
-   ```
-3. Download the built APK directly onto your Android device from the **Releases** tab.
+1. **Multi-Source E-Book Indexer:**
+   - Real-time client-side search across Open Library and Project Gutenberg.
+   - Verified public-domain classics: *Pride and Prejudice*, *Frankenstein*, *Dracula*, *The Adventures of Sherlock Holmes*, *Alice's Adventures in Wonderland*, *The Art of War*.
+   - Filter chips for quick genre exploration (*Classics*, *Fiction*, *Sci-Fi*, *Philosophy*, *Mystery*, *History*).
 
-### Local Development
+2. **Real Streaming Downloads:**
+   - Client-side OkHttp downloader with real-time percentage and transfer rate.
+   - Stores documents in app-private storage (`context.filesDir/books/`).
+   - Magic byte validation (`%PDF-`) rejects server HTML block pages and automatically falls back to verified public copies.
+
+3. **Built-in Native Android PDF Reader:**
+   - Powered directly by Android's native `PdfRenderer`.
+   - **True Night Mode:** Color matrix channel inversion turns white pages to deep obsidian black and text to crisp white for night reading.
+   - Smooth page navigation slider + Previous / Next buttons.
+   - Pinch-to-zoom and pan gestures.
+   - Automatically saves `lastReadPage` and reading progress on every page turn.
+
+4. **Offline Library:**
+   - Grid and list views of downloaded offline books.
+   - Real reading progress percentage bars.
+   - 1-tap **⚡ Starter Book** button to instantly test the reader.
+
+---
+
+## Build Instructions
+
 ```bash
-# 1. Install dependencies
-npm install
+# Clone the repository
+git clone https://github.com/Rzxiq/VitreBook.git
+cd VitreBook
 
-# 2. Run Android build
-npx react-native run-android
+# Build debug APK
+./gradlew assembleDebug
+
+# Build release APK
+./gradlew assembleRelease
 ```
+The output APK is generated at `app/build/outputs/apk/release/app-release.apk`.
