@@ -25,6 +25,8 @@ import com.vitrebook.data.model.Book
 import com.vitrebook.data.network.SearchEngine
 import com.vitrebook.ui.components.StreamingPosterCard
 import com.vitrebook.ui.theme.*
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 data class GenreCategory(
@@ -44,6 +46,7 @@ fun ExploreScreen(
     var books by remember { mutableStateOf(SearchEngine.FEATURED_CLASSICS) }
     var activeCategoryName by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(false) }
+    var searchJob by remember { mutableStateOf<Job?>(null) }
 
     val genreCategories = remember {
         listOf(
@@ -89,10 +92,17 @@ fun ExploreScreen(
     val trendingKeywords = listOf("Orwell", "Marcus Aurelius", "Frankenstein", "Plato", "Sherlock", "Dostoevsky", "Machiavelli")
 
     fun performSearch(q: String) {
-        coroutineScope.launch {
+        searchJob?.cancel()
+        searchJob = coroutineScope.launch {
+            delay(350)
+            if (query != q) return@launch
             isLoading = true
-            books = SearchEngine.searchAllSources(q)
-            isLoading = false
+            try {
+                val results = SearchEngine.searchAllSources(q)
+                if (query == q) books = results
+            } finally {
+                if (query == q) isLoading = false
+            }
         }
     }
 
@@ -127,8 +137,10 @@ fun ExploreScreen(
                 if (newQuery.length >= 2) {
                     activeCategoryName = null
                     performSearch(newQuery)
-                } else if (newQuery.isEmpty()) {
-                    books = SearchEngine.FEATURED_CLASSICS
+                } else {
+                    searchJob?.cancel()
+                    isLoading = false
+                    if (newQuery.isEmpty()) books = SearchEngine.FEATURED_CLASSICS
                 }
             },
             placeholder = { Text(text = "Search titles, authors, or topics...", color = TextMuted, fontSize = 14.sp) },
@@ -139,6 +151,8 @@ fun ExploreScreen(
                 if (query.isNotEmpty() || activeCategoryName != null) {
                     IconButton(onClick = {
                         query = ""
+                        searchJob?.cancel()
+                        isLoading = false
                         activeCategoryName = null
                         books = SearchEngine.FEATURED_CLASSICS
                     }) {

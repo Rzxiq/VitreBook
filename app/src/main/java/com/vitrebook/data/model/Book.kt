@@ -16,7 +16,8 @@ data class Book(
     @SerializedName("md5") val md5: String,
     @SerializedName("source") val source: String = "Open Library",
     @SerializedName("description") val description: String? = null,
-    @SerializedName("downloadUrl") val downloadUrl: String? = null
+    @SerializedName("downloadUrl") val downloadUrl: String? = null,
+    @SerializedName("editionPageUrl") val editionPageUrl: String? = null
 )
 
 data class DownloadedBook(
