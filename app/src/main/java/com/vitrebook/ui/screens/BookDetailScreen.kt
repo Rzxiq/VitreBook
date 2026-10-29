@@ -1,6 +1,7 @@
 package com.vitrebook.ui.screens
 
 import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -61,6 +62,8 @@ fun BookDetailScreen(
             onOpenReader(downloadedBook)
             return
         }
+
+        if (book.downloadUrl.isNullOrBlank()) return
 
         coroutineScope.launch {
             isDownloading = true
@@ -260,6 +263,7 @@ fun BookDetailScreen(
             ) {
                 Button(
                     onClick = { startDownloadOrRead() },
+                    enabled = downloadedBook != null || !book.downloadUrl.isNullOrBlank(),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = IceWhite,
                         contentColor = Color.Black
@@ -275,7 +279,11 @@ fun BookDetailScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = if (downloadedBook != null) "Read Now" else "Download & Read",
+                        text = when {
+                            downloadedBook != null -> "Read Now"
+                            book.downloadUrl.isNullOrBlank() -> "Metadata Only"
+                            else -> "Download & Read"
+                        },
                         fontWeight = FontWeight.ExtraBold,
                         fontSize = 15.sp
                     )
@@ -303,6 +311,25 @@ fun BookDetailScreen(
                         contentDescription = "Share",
                         modifier = Modifier.size(20.dp)
                     )
+                }
+            }
+
+            if (!book.editionPageUrl.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(10.dp))
+                OutlinedButton(
+                    onClick = {
+                        runCatching {
+                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(book.editionPageUrl)))
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = SilverAccent),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, ObsidianBorder),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Text("Open edition metadata page")
                 }
             }
 

@@ -3,6 +3,8 @@ package com.vitrebook.data.network
 import android.util.Log
 import com.vitrebook.data.model.Book
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.async
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -451,19 +453,33 @@ object SearchEngine {
         // 1. First check verified local direct PDF archive
         val localMatches = searchLocalArchive(cleanQ)
 
-        // 2. Query Project Gutenberg via Gutendex open API
-        val remoteMatches = try {
-            searchProjectGutenberg(cleanQ)
-        } catch (e: Exception) {
-            Log.w(TAG, "Remote Gutenberg search error", e)
-            emptyList()
+        // Query both external catalogs concurrently so one unavailable source does not block the other.
+        val gutenbergResults = async {
+            try {
+                searchProjectGutenberg(cleanQ)
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                Log.w(TAG, "Remote Gutenberg search error", e)
+                emptyList()
+            }
         }
+        val libGenResults = async {
+            try {
+                LibGenSearch.search(cleanQ)
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                Log.w(TAG, "LibGen metadata search error", e)
+                emptyList()
+            }
+        }
+        val remoteMatches = gutenbergResults.await()
+        val metadataMatches = libGenResults.await()
 
-        val combined = (localMatches + remoteMatches).distinctBy {
+        val combined = (localMatches + remoteMatches + metadataMatches).distinctBy {
             it.title.lowercase().replace(Regex("[^a-z0-9]"), "")
         }
 
-        Log.d(TAG, "Search completed. Local: ${localMatches.size}, Remote: ${remoteMatches.size}, Total distinct: ${combined.size}")
+        Log.d(TAG, "Search completed. Local: ${localMatches.size}, Gutenberg: ${remoteMatches.size}, metadata: ${metadataMatches.size}, Total distinct: ${combined.size}")
 
         // Return empty list if no matches found; do not fall back to unrelated samples
         combined
